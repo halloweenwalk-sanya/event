@@ -289,4 +289,119 @@
 
     const address = `${a1}-${a2}`;
     btn.disabled = true;
-    msg.innerText = '照合
+    msg.innerText = '照合中...';
+
+    try {
+      const recoveryHash = await createRecoveryHash(address, phone4);
+      const data = await postGas({
+        action: 'recoverByHash',
+        address: address,
+        recoveryHash: recoveryHash
+      });
+
+      if (!data.success) {
+        msg.innerText = data.message;
+        btn.disabled = false;
+        return;
+      }
+
+      localStorage.setItem(STORAGE_TOKEN_KEY, data.user.token);
+      renderMyPage(data, false);
+    } catch (e) {
+      msg.innerText = e.message || '通信エラーが発生しました';
+      btn.disabled = false;
+    }
+  }
+
+  async function loginWithToken(token) {
+    try {
+      const data = await postGas({ action: 'authByToken', token: token });
+      if (data.success) {
+        localStorage.setItem(STORAGE_TOKEN_KEY, data.user.token);
+        renderMyPage(data, false);
+        return true;
+      }
+    } catch (e) {}
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    return false;
+  }
+
+  function renderMyPage(data, isFirstRegister) {
+    currentPersonalUrl = data.user.personalUrl;
+    document.getElementById('userAddr').innerText = data.user.address;
+    document.getElementById('menuEventName').innerText = data.config.eventName;
+
+    if (isFirstRegister) {
+      document.getElementById('welcomeBox').style.display = 'block';
+      document.getElementById('myUrlText').innerText = currentPersonalUrl;
+      const shareText = `【${data.config.eventName}】\nマイページ専用URLです。グループ確認や当日スタンプに使います。\n${currentPersonalUrl}`;
+      document.getElementById('lineShareBtn').href = 'https://line.me/R/share?text=' + encodeURIComponent(shareText);
+    } else {
+      document.getElementById('welcomeBox').style.display = 'none';
+    }
+
+    document.getElementById('menu1').innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num">${data.summary.households}</div><div>参加世帯数</div></div>
+        <div class="stat-card"><div class="stat-num">${data.summary.children}</div><div>子ども総数</div></div>
+      </div>
+      <div>・スポット協力数：<strong>${data.summary.totalSpots} ヶ所</strong>（目標 7〜12ヶ所）</div>
+      <div style="font-size:0.82rem; color:#cbd5e0; margin-top:4px;">内訳：両方 ${data.summary.both} / スポットのみ ${data.summary.spot} / 散策のみ ${data.summary.walk}</div>
+    `;
+
+    document.getElementById('menu2').innerHTML = `
+      <div>・登録番地：<strong>${data.user.address}</strong></div>
+      <div>・子どもの人数：<strong>${data.user.children} 人</strong></div>
+      <div>・参加区分：<strong>${data.user.type}</strong></div>
+    `;
+
+    document.getElementById('menu3').innerHTML = `
+      <div style="margin-bottom:10px; font-size:0.85rem;">当日の雨天連絡や写真共有用の任意グループです（参加自由）。</div>
+      <a href="${data.config.lineUrl}" target="_blank" class="btn btn-line">LINEグループを開く</a>
+    `;
+
+    document.getElementById('menu4').innerHTML = `<div>${data.config.paypayInfo}</div>`;
+
+    if (data.config.isPublished) {
+      document.getElementById('menu5').innerHTML = `
+        <div>・あなたのグループ：<strong>${data.user.group}</strong></div>
+        <div>・準備するお菓子の数：<strong>${data.user.candy} 個</strong></div>
+      `;
+    } else {
+      document.getElementById('menu5').innerHTML = `<div style="color:#fbd38d;">※参加締切後にグループと準備するお菓子の数を計算して公開します。</div>`;
+    }
+
+    if (data.config.isPublished) {
+      document.getElementById('menu6').innerHTML = `<a href="${data.config.mapUrl}" target="_blank" class="btn">スポットマップを開く</a>`;
+    } else {
+      document.getElementById('menu6').innerHTML = `<div style="color:#fbd38d;">※スポット確定後にマップを公開します。</div>`;
+    }
+
+    showSection('menuSection');
+  }
+
+  function showSection(id) {
+    ['loadingSection', 'authSection', 'menuSection'].forEach(sec => {
+      document.getElementById(sec).style.display = (sec === id) ? 'block' : 'none';
+    });
+  }
+
+  function toggleMenu(num) {
+    const el = document.getElementById('menu' + num);
+    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+  }
+
+  function copyMyUrl() {
+    navigator.clipboard.writeText(currentPersonalUrl).then(() => {
+      alert('専用URLをコピーしました！\n' + currentPersonalUrl);
+    });
+  }
+
+  function logout() {
+    if (!confirm('この端末のログイン記憶を解除してトップ画面に戻りますか？')) return;
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    location.reload();
+  }
+</script>
+</body>
+</html>
