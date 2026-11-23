@@ -22,6 +22,7 @@
     input, select { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 1rem; }
     .addr-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
     .addr-row input { margin-bottom: 0; text-align: center; }
+    .fixed-field { background: #1f2937; border: 1px solid #4a5568; padding: 11px 12px; border-radius: 8px; margin-bottom: 16px; color: #cbd5e0; font-size: 0.95rem; }
     .btn { width: 100%; padding: 14px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; }
     .btn:disabled { background: #718096; cursor: not-allowed; }
     .btn-sub { background: #4a5568; font-size: 0.9rem; padding: 11px; }
@@ -84,6 +85,10 @@
           <option value="3">3人</option>
           <option value="4">4人</option>
           <option value="5">5人</option>
+          <option value="6">6人</option>
+          <option value="7">7人</option>
+          <option value="8">8人</option>
+          <option value="9">9人</option>
         </select>
 
         <label>参加区分</label>
@@ -370,13 +375,14 @@
     }
 
     // 1. 全体の申込状況
+    const absentNote = (data.summary.absent > 0) ? ` / 欠席 ${data.summary.absent}` : '';
     document.getElementById('menu1').innerHTML = `
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-num">${data.summary.households}</div><div>参加世帯数</div></div>
         <div class="stat-card"><div class="stat-num">${data.summary.children}</div><div>子ども総数</div></div>
       </div>
       <div>・スポット協力数：<strong>${data.summary.totalSpots} ヶ所</strong>（目標 7〜12ヶ所）</div>
-      <div style="font-size:0.82rem; color:#cbd5e0; margin-top:4px;">内訳：両方 ${data.summary.both} / スポットのみ ${data.summary.spot} / 散策のみ ${data.summary.walk}</div>
+      <div style="font-size:0.82rem; color:#cbd5e0; margin-top:4px;">内訳：両方 ${data.summary.both} / スポットのみ ${data.summary.spot} / 散策のみ ${data.summary.walk}${absentNote}</div>
     `;
 
     // 2. あなたの申込内容（編集機能付き）
@@ -439,42 +445,33 @@
       `;
     }
 
+    const typeStyle = String(u.type).includes('欠席') ? 'color:#fc8181;' : '';
+
     document.getElementById('menu2').innerHTML = `
       <div>・登録番地：<strong>${u.address}</strong></div>
       <div>・子どもの人数：<strong>${u.children} 人</strong></div>
-      <div>・参加区分：<strong>${u.type}</strong></div>
+      <div>・参加区分：<strong style="${typeStyle}">${u.type}</strong></div>
       ${editControlHtml}
     `;
   }
 
   function openEditForm() {
     const u = currentUserData;
-    const parts = String(u.address).split('-');
-    const a1 = parts[0] || '';
-    const a2 = parts[1] || '';
 
     const typeOptions = [
       '両方（散策＋スポット協力）',
       '散策のみ',
-      'スポットのみ'
+      'スポットのみ',
+      '欠席'
     ].map(t => `<option value="${t}" ${u.type === t ? 'selected' : ''}>${t}</option>`).join('');
 
-    const childOptions = [1, 2, 3, 4, 5].map(n =>
+    const childOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n =>
       `<option value="${n}" ${Number(u.children) === n ? 'selected' : ''}>${n}人</option>`
     ).join('');
 
     document.getElementById('menu2').innerHTML = `
-      <label>番地（半角数字）</label>
-      <div class="addr-row">
-        <input type="text" id="editAddr1" inputmode="numeric" maxlength="4" value="${a1}" oninput="checkAddrChanged()">
-        <span>ー</span>
-        <input type="text" id="editAddr2" inputmode="numeric" maxlength="2" value="${a2}" oninput="checkAddrChanged()">
-      </div>
-
-      <div id="editPhoneWrap" style="display:none;">
-        <label>携帯番号の下4桁（番地変更時の確認用）<span class="hint">※番地を変更する場合は、登録時の携帯下4桁を入力してください</span></label>
-        <input type="tel" id="editPhone4" inputmode="numeric" maxlength="4" placeholder="5678">
-      </div>
+      <label>番地<span class="hint">※番地は変更できません（修正が必要な場合は運営へご連絡ください）</span></label>
+      <div class="fixed-field"><strong>${u.address}</strong></div>
 
       <label>参加する子どもの人数</label>
       <select id="editChildren">${childOptions}</select>
@@ -490,34 +487,11 @@
     `;
   }
 
-  function checkAddrChanged() {
-    const a1 = toHalfNum(document.getElementById('editAddr1').value);
-    const a2 = toHalfNum(document.getElementById('editAddr2').value);
-    const newAddr = `${a1}-${a2}`;
-    document.getElementById('editPhoneWrap').style.display = (newAddr !== currentUserData.address) ? 'block' : 'none';
-  }
-
   async function submitUpdate() {
-    const a1 = toHalfNum(document.getElementById('editAddr1').value);
-    const a2 = toHalfNum(document.getElementById('editAddr2').value);
     const children = document.getElementById('editChildren').value;
     const type = document.getElementById('editType').value;
     const msg = document.getElementById('editMsg');
     const btn = document.getElementById('saveEditBtn');
-
-    if (!a1 || !a2) { msg.innerText = '番地を正しく入力してください'; return; }
-
-    const newAddr = `${a1}-${a2}`;
-    let recoveryHash = '';
-
-    if (newAddr !== currentUserData.address) {
-      const phone4 = toHalfNum(document.getElementById('editPhone4').value);
-      if (phone4.length !== 4) {
-        msg.innerText = '番地を変更する場合は、携帯番号の下4桁（4桁）を入力してください';
-        return;
-      }
-      recoveryHash = await createRecoveryHash(newAddr, phone4);
-    }
 
     btn.disabled = true;
     msg.innerText = '更新中...';
@@ -526,10 +500,8 @@
       const data = await postGas({
         action: 'update',
         token: currentUserData.token,
-        address: newAddr,
         children: children,
-        type: type,
-        recoveryHash: recoveryHash
+        type: type
       });
 
       if (!data.success) {
