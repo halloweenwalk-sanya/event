@@ -406,16 +406,35 @@
 
     // 5. グループ・準備お菓子数（フラグONで表示）
     if (data.config.isGroupPublished) {
-      document.getElementById('menu5').innerHTML = `
-        <div class="highlight-card">
-          <div style="font-size:0.82rem; color:#cbd5e0;">あなたのグループ</div>
-          <div style="font-size:1.3rem; font-weight:bold; color:#ff9800;">${data.user.group}</div>
-        </div>
-        <div class="highlight-card">
-          <div style="font-size:0.82rem; color:#cbd5e0;">準備するお菓子の数</div>
-          <div style="font-size:1.3rem; font-weight:bold; color:#fbd38d;">${data.user.candy} 個</div>
-        </div>
-      `;
+      let groupCardsHtml = '';
+
+      if (String(data.user.type).includes('欠席')) {
+        groupCardsHtml = `<div style="color:#fc8181;">参加区分が「欠席」のため、グループ割り当てはありません。</div>`;
+      } else {
+        if (data.user.candySpot && data.user.candySpot !== '対象外') {
+          groupCardsHtml += `
+            <div class="highlight-card">
+              <div style="font-size:0.82rem; color:#cbd5e0;">お菓子スポット（提供スポットのグループ）</div>
+              <div style="font-size:1.3rem; font-weight:bold; color:#ff9800;">${data.user.candySpot}</div>
+            </div>
+          `;
+        }
+        if (data.user.group && data.user.group !== '対象外') {
+          groupCardsHtml += `
+            <div class="highlight-card">
+              <div style="font-size:0.82rem; color:#cbd5e0;">所属グループ（お菓子をもらうグループ）</div>
+              <div style="font-size:1.3rem; font-weight:bold; color:#68d391;">${data.user.group}</div>
+            </div>
+          `;
+        }
+        groupCardsHtml += `
+          <div class="highlight-card">
+            <div style="font-size:0.82rem; color:#cbd5e0;">準備するお菓子の数</div>
+            <div style="font-size:1.3rem; font-weight:bold; color:#fbd38d;">${data.user.candy} 個</div>
+          </div>
+        `;
+      }
+      document.getElementById('menu5').innerHTML = groupCardsHtml;
     } else {
       document.getElementById('menu5').innerHTML = `<div style="color:#fbd38d;">※参加締切後にグループと準備するお菓子の数を計算して公開します。</div>`;
     }
