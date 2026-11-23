@@ -14,7 +14,8 @@
     .logo-wrap { text-align: center; margin-bottom: 8px; }
     .logo-img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
     h1 { margin: 0 0 4px; color: #ff9800; font-size: 1.3rem; text-align: center; }
-    .sub-title { text-align: center; font-size: 0.85rem; color: #cbd5e0; margin-bottom: 18px; }
+    .sub-title { text-align: center; font-size: 0.85rem; color: #cbd5e0; margin-bottom: 6px; }
+    .deadline-badge { text-align: center; font-size: 0.8rem; color: #fbd38d; background: #1f2937; padding: 6px 10px; border-radius: 6px; margin-bottom: 16px; }
     h2 { margin: 0 0 14px; color: #fbd38d; font-size: 1.1rem; border-bottom: 1px solid #4a5568; padding-bottom: 8px; }
     label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: #e2e8f0; }
     .hint { font-size: 0.78rem; color: #a0aec0; font-weight: normal; display: block; margin-top: 2px; }
@@ -25,8 +26,11 @@
     .btn:disabled { background: #718096; cursor: not-allowed; }
     .btn-sub { background: #4a5568; font-size: 0.9rem; padding: 11px; }
     .btn-line { background: #06C755; margin-top: 10px; }
+    .btn-paypay { background: #FF0033; margin-top: 12px; }
+    .btn-row { display: flex; gap: 8px; margin-top: 8px; }
     .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 10px; }
     .msg-ok { color: #68d391; font-size: 0.85rem; margin-top: 8px; }
+    .closed-box { background: #1f2937; border: 1px solid #fc8181; color: #feb2b2; padding: 14px; border-radius: 8px; text-align: center; font-size: 0.9rem; }
 
     .welcome-box { background: #22543d; border: 1px solid #48bb78; padding: 16px; border-radius: 10px; margin-bottom: 16px; }
     .welcome-box h3 { margin: 0 0 8px; color: #9ae6b4; font-size: 1rem; }
@@ -40,6 +44,7 @@
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .stat-card { background: #1f2937; padding: 10px; border-radius: 8px; text-align: center; }
     .stat-num { font-size: 1.3rem; font-weight: bold; color: #ff9800; }
+    .highlight-card { background: #1f2937; border: 1px solid #ff9800; padding: 12px; border-radius: 8px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -56,36 +61,44 @@
       <div class="logo-wrap"><img src="icon.png" class="logo-img" onerror="this.style.display='none'"></div>
       <h1 id="dispEventName">山谷ハロウィンウォーク</h1>
       <div id="dispEventDate" class="sub-title"></div>
+      <div id="dispDeadline" class="deadline-badge" style="display:none;"></div>
 
       <h2>新規参加申込（お名前不要）</h2>
-      <label>番地（半角数字）<span class="hint">例：6001番地1 の場合は「6001」と「1」を入力</span></label>
-      <div class="addr-row">
-        <input type="text" id="regAddr1" inputmode="numeric" maxlength="4" placeholder="6001">
-        <span>ー</span>
-        <input type="text" id="regAddr2" inputmode="numeric" maxlength="2" placeholder="1">
+      <div id="regClosedBox" class="closed-box" style="display:none;">
+        参加申込の受付期限を過ぎたため、新規登録を締め切りました。<br>
+        <span style="font-size:0.8rem; color:#cbd5e0;">※すでに登録済みの方は、下のフォームからマイページを開けます。</span>
       </div>
 
-      <label>参加する子どもの人数</label>
-      <select id="regChildren">
-        <option value="1">1人</option>
-        <option value="2">2人</option>
-        <option value="3">3人</option>
-        <option value="4">4人</option>
-        <option value="5">5人</option>
-      </select>
+      <div id="regFormWrap">
+        <label>番地（半角数字）<span class="hint">例：6001番地1 の場合は「6001」と「1」を入力</span></label>
+        <div class="addr-row">
+          <input type="text" id="regAddr1" inputmode="numeric" maxlength="4" placeholder="6001">
+          <span>ー</span>
+          <input type="text" id="regAddr2" inputmode="numeric" maxlength="2" placeholder="1">
+        </div>
 
-      <label>参加区分</label>
-      <select id="regType">
-        <option value="両方（散策＋スポット協力）">両方（散策＋スポット協力）</option>
-        <option value="散策のみ">散策のみ（お菓子をもらいに行く）</option>
-        <option value="スポットのみ">スポットのみ（自宅でお菓子を配る）</option>
-      </select>
+        <label>参加する子どもの人数</label>
+        <select id="regChildren">
+          <option value="1">1人</option>
+          <option value="2">2人</option>
+          <option value="3">3人</option>
+          <option value="4">4人</option>
+          <option value="5">5人</option>
+        </select>
 
-      <label>携帯番号の下4桁（機種変更・別スマホ確認用）<span class="hint">※暗号化して保存するため、番号自体は記録されません</span></label>
-      <input type="tel" id="regPhone4" inputmode="numeric" maxlength="4" placeholder="例: 5678">
+        <label>参加区分</label>
+        <select id="regType">
+          <option value="両方（散策＋スポット協力）">両方（散策＋スポット協力）</option>
+          <option value="散策のみ">散策のみ（お菓子をもらいに行く）</option>
+          <option value="スポットのみ">スポットのみ（自宅でお菓子を配る）</option>
+        </select>
 
-      <button id="regBtn" class="btn" onclick="submitRegister()">この内容で参加登録する</button>
-      <div id="regMsg" class="msg-error"></div>
+        <label>携帯番号の下4桁（機種変更・別スマホ確認用）<span class="hint">※暗号化して保存するため、番号自体は記録されません</span></label>
+        <input type="tel" id="regPhone4" inputmode="numeric" maxlength="4" placeholder="例: 5678">
+
+        <button id="regBtn" class="btn" onclick="submitRegister()">この内容で参加登録する</button>
+        <div id="regMsg" class="msg-error"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -176,6 +189,8 @@
   const STORAGE_TOKEN_KEY = 'hw_sanya_token_v1';
   const HASH_SALT = 'hw_sanya_secure_salt_2027';
   let currentPersonalUrl = '';
+  let currentUserData = null;
+  let currentConfigData = null;
 
   window.onload = async function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -216,10 +231,7 @@
     try {
       return JSON.parse(text);
     } catch (e) {
-      if (text.includes('doPost')) {
-        throw new Error('GAS側で「新バージョン」のデプロイが必要です。Apps Scriptの「デプロイを管理」から新バージョンで再デプロイしてください。');
-      }
-      throw new Error('GAS応答エラー: ' + text.replace(/<[^>]*>/g, '').slice(0, 80));
+      throw new Error('GAS通信エラー: ' + text.replace(/<[^>]*>/g, '').slice(0, 80));
     }
   }
 
@@ -227,8 +239,22 @@
     try {
       const data = await postGas({ action: 'getConfig' });
       if (data.success && data.config) {
-        document.getElementById('dispEventName').innerText = data.config.eventName;
-        document.getElementById('dispEventDate').innerText = data.config.eventDate;
+        const cfg = data.config;
+        document.getElementById('dispEventName').innerText = cfg.eventName;
+        document.getElementById('dispEventDate').innerText = cfg.eventDate;
+
+        if (cfg.deadlineText) {
+          const badge = document.getElementById('dispDeadline');
+          badge.style.display = 'block';
+          badge.innerText = cfg.isExpired
+            ? `申込受付終了（締切：${cfg.deadlineText}）`
+            : `申込・内容変更の期限：${cfg.deadlineText} まで`;
+        }
+
+        if (cfg.isExpired) {
+          document.getElementById('regFormWrap').style.display = 'none';
+          document.getElementById('regClosedBox').style.display = 'block';
+        }
       }
     } catch (e) {
       document.getElementById('dispEventDate').innerHTML = '<span style="color:#fc8181;">⚠️ ' + e.message + '</span>';
@@ -328,6 +354,9 @@
 
   function renderMyPage(data, isFirstRegister) {
     currentPersonalUrl = data.user.personalUrl;
+    currentUserData = data.user;
+    currentConfigData = data.config;
+
     document.getElementById('userAddr').innerText = data.user.address;
     document.getElementById('menuEventName').innerText = data.config.eventName;
 
@@ -340,6 +369,7 @@
       document.getElementById('welcomeBox').style.display = 'none';
     }
 
+    // 1. 全体の申込状況
     document.getElementById('menu1').innerHTML = `
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-num">${data.summary.households}</div><div>参加世帯数</div></div>
@@ -349,35 +379,172 @@
       <div style="font-size:0.82rem; color:#cbd5e0; margin-top:4px;">内訳：両方 ${data.summary.both} / スポットのみ ${data.summary.spot} / 散策のみ ${data.summary.walk}</div>
     `;
 
-    document.getElementById('menu2').innerHTML = `
-      <div>・登録番地：<strong>${data.user.address}</strong></div>
-      <div>・子どもの人数：<strong>${data.user.children} 人</strong></div>
-      <div>・参加区分：<strong>${data.user.type}</strong></div>
-    `;
+    // 2. あなたの申込内容（編集機能付き）
+    renderMenu2View();
 
+    // 3. 参加者LINEグループ
     document.getElementById('menu3').innerHTML = `
       <div style="margin-bottom:10px; font-size:0.85rem;">当日の雨天連絡や写真共有用の任意グループです（参加自由）。</div>
       <a href="${data.config.lineUrl}" target="_blank" class="btn btn-line">LINEグループを開く</a>
     `;
 
-    document.getElementById('menu4').innerHTML = `<div>${data.config.paypayInfo}</div>`;
+    // 4. 協力金について（PayPay URLボタン付き）
+    let paypayBtnHtml = '';
+    if (data.config.paypayUrl && data.config.paypayUrl.startsWith('http')) {
+      paypayBtnHtml = `<a href="${data.config.paypayUrl}" target="_blank" class="btn btn-paypay">PayPayで協力金を送金する</a>`;
+    }
+    document.getElementById('menu4').innerHTML = `
+      <div>${data.config.paypayInfo}</div>
+      ${paypayBtnHtml}
+    `;
 
-    if (data.config.isPublished) {
+    // 5. グループ・準備お菓子数（フラグONで表示）
+    if (data.config.isGroupPublished) {
       document.getElementById('menu5').innerHTML = `
-        <div>・あなたのグループ：<strong>${data.user.group}</strong></div>
-        <div>・準備するお菓子の数：<strong>${data.user.candy} 個</strong></div>
+        <div class="highlight-card">
+          <div style="font-size:0.82rem; color:#cbd5e0;">あなたのグループ</div>
+          <div style="font-size:1.3rem; font-weight:bold; color:#ff9800;">${data.user.group}</div>
+        </div>
+        <div class="highlight-card">
+          <div style="font-size:0.82rem; color:#cbd5e0;">準備するお菓子の数</div>
+          <div style="font-size:1.3rem; font-weight:bold; color:#fbd38d;">${data.user.candy} 個</div>
+        </div>
       `;
     } else {
       document.getElementById('menu5').innerHTML = `<div style="color:#fbd38d;">※参加締切後にグループと準備するお菓子の数を計算して公開します。</div>`;
     }
 
-    if (data.config.isPublished) {
+    // 6. マップの確認（フラグONで表示）
+    if (data.config.isMapPublished) {
       document.getElementById('menu6').innerHTML = `<a href="${data.config.mapUrl}" target="_blank" class="btn">スポットマップを開く</a>`;
     } else {
       document.getElementById('menu6').innerHTML = `<div style="color:#fbd38d;">※スポット確定後にマップを公開します。</div>`;
     }
 
     showSection('menuSection');
+  }
+
+  function renderMenu2View() {
+    const u = currentUserData;
+    const cfg = currentConfigData;
+    let editControlHtml = '';
+
+    if (cfg.isExpired) {
+      editControlHtml = `<div style="font-size:0.8rem; color:#a0aec0; margin-top:10px;">※受付期限（${cfg.deadlineText}）を過ぎたため、内容の変更はできません。</div>`;
+    } else {
+      const deadlineNote = cfg.deadlineText ? `<div style="font-size:0.78rem; color:#fbd38d; margin-top:6px;">変更期限：${cfg.deadlineText} まで</div>` : '';
+      editControlHtml = `
+        <button class="btn btn-sub" style="margin-top:12px;" onclick="openEditForm()">登録内容を変更する</button>
+        ${deadlineNote}
+      `;
+    }
+
+    document.getElementById('menu2').innerHTML = `
+      <div>・登録番地：<strong>${u.address}</strong></div>
+      <div>・子どもの人数：<strong>${u.children} 人</strong></div>
+      <div>・参加区分：<strong>${u.type}</strong></div>
+      ${editControlHtml}
+    `;
+  }
+
+  function openEditForm() {
+    const u = currentUserData;
+    const parts = String(u.address).split('-');
+    const a1 = parts[0] || '';
+    const a2 = parts[1] || '';
+
+    const typeOptions = [
+      '両方（散策＋スポット協力）',
+      '散策のみ',
+      'スポットのみ'
+    ].map(t => `<option value="${t}" ${u.type === t ? 'selected' : ''}>${t}</option>`).join('');
+
+    const childOptions = [1, 2, 3, 4, 5].map(n =>
+      `<option value="${n}" ${Number(u.children) === n ? 'selected' : ''}>${n}人</option>`
+    ).join('');
+
+    document.getElementById('menu2').innerHTML = `
+      <label>番地（半角数字）</label>
+      <div class="addr-row">
+        <input type="text" id="editAddr1" inputmode="numeric" maxlength="4" value="${a1}" oninput="checkAddrChanged()">
+        <span>ー</span>
+        <input type="text" id="editAddr2" inputmode="numeric" maxlength="2" value="${a2}" oninput="checkAddrChanged()">
+      </div>
+
+      <div id="editPhoneWrap" style="display:none;">
+        <label>携帯番号の下4桁（番地変更時の確認用）<span class="hint">※番地を変更する場合は、登録時の携帯下4桁を入力してください</span></label>
+        <input type="tel" id="editPhone4" inputmode="numeric" maxlength="4" placeholder="5678">
+      </div>
+
+      <label>参加する子どもの人数</label>
+      <select id="editChildren">${childOptions}</select>
+
+      <label>参加区分</label>
+      <select id="editType">${typeOptions}</select>
+
+      <div class="btn-row">
+        <button id="saveEditBtn" class="btn" onclick="submitUpdate()">変更を保存する</button>
+        <button class="btn btn-sub" onclick="renderMenu2View()">キャンセル</button>
+      </div>
+      <div id="editMsg" class="msg-error"></div>
+    `;
+  }
+
+  function checkAddrChanged() {
+    const a1 = toHalfNum(document.getElementById('editAddr1').value);
+    const a2 = toHalfNum(document.getElementById('editAddr2').value);
+    const newAddr = `${a1}-${a2}`;
+    document.getElementById('editPhoneWrap').style.display = (newAddr !== currentUserData.address) ? 'block' : 'none';
+  }
+
+  async function submitUpdate() {
+    const a1 = toHalfNum(document.getElementById('editAddr1').value);
+    const a2 = toHalfNum(document.getElementById('editAddr2').value);
+    const children = document.getElementById('editChildren').value;
+    const type = document.getElementById('editType').value;
+    const msg = document.getElementById('editMsg');
+    const btn = document.getElementById('saveEditBtn');
+
+    if (!a1 || !a2) { msg.innerText = '番地を正しく入力してください'; return; }
+
+    const newAddr = `${a1}-${a2}`;
+    let recoveryHash = '';
+
+    if (newAddr !== currentUserData.address) {
+      const phone4 = toHalfNum(document.getElementById('editPhone4').value);
+      if (phone4.length !== 4) {
+        msg.innerText = '番地を変更する場合は、携帯番号の下4桁（4桁）を入力してください';
+        return;
+      }
+      recoveryHash = await createRecoveryHash(newAddr, phone4);
+    }
+
+    btn.disabled = true;
+    msg.innerText = '更新中...';
+
+    try {
+      const data = await postGas({
+        action: 'update',
+        token: currentUserData.token,
+        address: newAddr,
+        children: children,
+        type: type,
+        recoveryHash: recoveryHash
+      });
+
+      if (!data.success) {
+        msg.innerText = data.message;
+        btn.disabled = false;
+        return;
+      }
+
+      renderMyPage(data, false);
+      document.getElementById('menu2').style.display = 'block';
+      alert('登録内容を更新しました！');
+    } catch (e) {
+      msg.innerText = e.message || '更新中にエラーが発生しました';
+      btn.disabled = false;
+    }
   }
 
   function showSection(id) {
