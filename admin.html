@@ -49,7 +49,7 @@
     <h1>運営管理メニュー</h1>
     <div class="sub-title">山谷ハロウィンウォーク 管理者専用</div>
 
-    <label>管理者パスワード<span style="font-weight:normal; color:#a0aec0; font-size:0.78rem; display:block;">※スプレッドシートの「config」タブに設定したパスワードを入力</span></label>
+    <label>管理者パスワード</label>
     <input type="password" id="adminPassInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') doAdminLogin()">
 
     <button id="loginBtn" class="btn" onclick="doAdminLogin()">管理画面にログイン</button>
@@ -138,19 +138,42 @@
         <button id="archiveBtn" class="btn btn-danger" onclick="runArchiveAndReset()">今年度分をアーカイブして初期化する</button>
       </div>
     </div>
+
+    <!-- 5. 管理者パスワード変更 -->
+    <div class="card">
+      <h2>５．管理者パスワードの変更（引き継ぎ用）</h2>
+      <div class="note">新しいパスワードは端末内でSHA-256ハッシュ化されてから保存されます。</div>
+      <button id="togglePassFormBtn" class="btn btn-sub" onclick="togglePassForm()">パスワードを変更する</button>
+      <div id="passChangeWrap" style="display:none; margin-top:12px;">
+        <label>新しいパスワード（4文字以上）</label>
+        <input type="password" id="newPass1" placeholder="新しいパスワード">
+        <label>新しいパスワード（確認用）</label>
+        <input type="password" id="newPass2" placeholder="もう一度入力">
+        <button id="savePassBtn" class="btn" onclick="submitChangePassword()">新しいパスワードを保存する</button>
+        <div id="passChangeMsg" class="msg-error"></div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
   const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw_f8vuCGQwmsg8N9CcItGBMe1YVWSkhCP5ubdoK8CM4xGxx8yk3RAgIJDBGNu4vI4C/exec';
-  const SESSION_PASS_KEY = 'hw_sanya_admin_pass_v1';
+  const ADMIN_HASH_SALT = 'hw_sanya_admin_salt_2027';
+  const SESSION_HASH_KEY = 'hw_sanya_admin_hash_v1';
 
   window.onload = async function() {
-    const savedPass = sessionStorage.getItem(SESSION_PASS_KEY);
-    if (savedPass) {
-      await fetchDashboard(savedPass, true);
+    const savedHash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (savedHash) {
+      await fetchDashboard(savedHash, true);
     }
   };
+
+  async function createAdminHash(pass) {
+    const raw = `${String(pass).trim()}:${ADMIN_HASH_SALT}`;
+    const msgUint8 = new TextEncoder().encode(raw);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 
   async function postAdmin(payload) {
     const res = await fetch(GAS_API_URL, {
@@ -179,23 +202,24 @@
     btn.disabled = true;
     msg.innerText = '認証中...';
 
-    const ok = await fetchDashboard(pass, false);
+    const hash = await createAdminHash(pass);
+    const ok = await fetchDashboard(hash, false);
     if (!ok) {
       btn.disabled = false;
     }
   }
 
-  async function fetchDashboard(password, isAutoLogin) {
+  async function fetchDashboard(passwordHash, isAutoLogin) {
     const msg = document.getElementById('loginMsg');
     try {
-      const data = await postAdmin({ action: 'adminLogin', password: password });
+      const data = await postAdmin({ action: 'adminLogin', passwordHash: passwordHash });
       if (!data.success) {
-        sessionStorage.removeItem(SESSION_PASS_KEY);
+        sessionStorage.removeItem(SESSION_HASH_KEY);
         if (!isAutoLogin) msg.innerText = data.message;
         return false;
       }
 
-      sessionStorage.setItem(SESSION_PASS_KEY, password);
+      sessionStorage.setItem(SESSION_HASH_KEY, passwordHash);
       renderDashboard(data.dashboard);
       document.getElementById('loginSection').style.display = 'none';
       document.getElementById('dashboardSection').style.display = 'block';
@@ -251,9 +275,9 @@
   }
 
   async function refreshDashboard() {
-    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
-    if (!pass) return;
-    const data = await postAdmin({ action: 'adminGetDashboard', password: pass });
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
+    const data = await postAdmin({ action: 'adminGetDashboard', passwordHash: hash });
     if (data.success) {
       renderDashboard(data.dashboard);
       showToast(data.message);
@@ -263,11 +287,11 @@
   }
 
   async function toggleFlag(flagKey) {
-    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
-    if (!pass) return;
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
     if (!confirm(`「${flagKey}」の公開状態を切り替えますか？`)) return;
 
-    const data = await postAdmin({ action: 'adminToggleFlag', password: pass, flagKey: flagKey });
+    const data = await postAdmin({ action: 'adminToggleFlag', passwordHash: hash, flagKey: flagKey });
     if (data.success) {
       renderDashboard(data.dashboard);
       showToast(data.message);
@@ -277,14 +301,14 @@
   }
 
   async function runFillGeocodes() {
-    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
-    if (!pass) return;
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
     const btn = document.getElementById('geoBtn');
     btn.disabled = true;
     btn.innerText = '座標を取得中...';
 
     try {
-      const data = await postAdmin({ action: 'adminFillGeocodes', password: pass });
+      const data = await postAdmin({ action: 'adminFillGeocodes', passwordHash: hash });
       if (data.success) {
         renderDashboard(data.dashboard);
         showToast(data.message);
@@ -298,8 +322,8 @@
   }
 
   async function runArchiveAndReset() {
-    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
-    if (!pass) return;
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
 
     const count = document.getElementById('archRowCount').innerText;
     const sheetName = document.getElementById('archSheetName').innerText;
@@ -313,7 +337,7 @@
     btn.innerText = 'アーカイブ処理中...';
 
     try {
-      const data = await postAdmin({ action: 'adminArchiveAndReset', password: pass });
+      const data = await postAdmin({ action: 'adminArchiveAndReset', passwordHash: hash });
       if (data.success) {
         renderDashboard(data.dashboard);
         showToast(data.message);
@@ -327,8 +351,54 @@
     }
   }
 
+  function togglePassForm() {
+    const wrap = document.getElementById('passChangeWrap');
+    wrap.style.display = (wrap.style.display === 'none') ? 'block' : 'none';
+  }
+
+  async function submitChangePassword() {
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
+
+    const p1 = document.getElementById('newPass1').value.trim();
+    const p2 = document.getElementById('newPass2').value.trim();
+    const msg = document.getElementById('passChangeMsg');
+    const btn = document.getElementById('savePassBtn');
+
+    if (p1.length < 4) { msg.innerText = 'パスワードは4文字以上で入力してください。'; return; }
+    if (p1 !== p2) { msg.innerText = '確認用のパスワードが一致しません。'; return; }
+
+    btn.disabled = true;
+    msg.innerText = '変更中...';
+
+    try {
+      const newHash = await createAdminHash(p1);
+      const data = await postAdmin({
+        action: 'adminChangePassword',
+        passwordHash: hash,
+        newPasswordHash: newHash
+      });
+
+      if (!data.success) {
+        msg.innerText = data.message;
+        return;
+      }
+
+      sessionStorage.setItem(SESSION_HASH_KEY, data.newPasswordHash);
+      document.getElementById('newPass1').value = '';
+      document.getElementById('newPass2').value = '';
+      document.getElementById('passChangeWrap').style.display = 'none';
+      msg.innerText = '';
+      showToast(data.message);
+    } catch (e) {
+      msg.innerText = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   function adminLogout() {
-    sessionStorage.removeItem(SESSION_PASS_KEY);
+    sessionStorage.removeItem(SESSION_HASH_KEY);
     location.reload();
   }
 </script>
