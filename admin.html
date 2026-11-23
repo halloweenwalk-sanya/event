@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>運営管理画面 | 山谷ハロウィンウォーク</title>
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { background: #1a202c; color: #f7fafc; margin: 0; padding: 16px; line-height: 1.5; }
+    .container { max-width: 480px; margin: 0 auto; }
+    .card { background: #2d3748; padding: 20px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .logo-wrap { text-align: center; margin-bottom: 8px; }
+    .logo-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+    h1 { margin: 0 0 4px; color: #ff9800; font-size: 1.25rem; text-align: center; }
+    .sub-title { text-align: center; font-size: 0.85rem; color: #cbd5e0; margin-bottom: 16px; }
+    h2 { margin: 0 0 12px; color: #fbd38d; font-size: 1.05rem; border-bottom: 1px solid #4a5568; padding-bottom: 8px; }
+    label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: #e2e8f0; }
+    input { width: 100%; padding: 12px; margin-bottom: 14px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 1rem; }
+    .btn { width: 100%; padding: 13px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
+    .btn:disabled { background: #718096; cursor: not-allowed; }
+    .btn-sub { background: #4a5568; }
+    .btn-green { background: #2f855a; }
+    .btn-danger { background: #c53030; }
+    .btn-small { background: none; border: 1px solid #718096; color: #cbd5e0; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; }
+
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.85rem; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .stat-card { background: #1f2937; padding: 10px; border-radius: 8px; text-align: center; }
+    .stat-num { font-size: 1.3rem; font-weight: bold; color: #ff9800; }
+
+    .flag-row { display: flex; justify-content: space-between; align-items: center; background: #1f2937; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+    .badge-on { background: #2f855a; color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+    .badge-off { background: #4a5568; color: #cbd5e0; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+
+    .toast { background: #22543d; border: 1px solid #48bb78; color: #c6f6d5; padding: 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 14px; display: none; }
+    .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 8px; }
+    .danger-zone { border: 1px solid #c53030; background: #1f2937; padding: 14px; border-radius: 8px; margin-top: 8px; }
+    .note { font-size: 0.8rem; color: #a0aec0; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- ログイン画面 -->
+  <div id="loginSection" class="card">
+    <div class="logo-wrap"><img src="icon.png" class="logo-img" onerror="this.style.display='none'"></div>
+    <h1>運営管理メニュー</h1>
+    <div class="sub-title">山谷ハロウィンウォーク 管理者専用</div>
+
+    <label>管理者パスワード<span style="font-weight:normal; color:#a0aec0; font-size:0.78rem; display:block;">※スプレッドシートの「config」タブに設定したパスワードを入力</span></label>
+    <input type="password" id="adminPassInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') doAdminLogin()">
+
+    <button id="loginBtn" class="btn" onclick="doAdminLogin()">管理画面にログイン</button>
+    <div id="loginMsg" class="msg-error"></div>
+
+    <div style="text-align:center; margin-top:16px;">
+      <a href="./" style="color:#fbd38d; font-size:0.85rem;">← 参加者用トップページへ戻る</a>
+    </div>
+  </div>
+
+  <!-- 管理ダッシュボード -->
+  <div id="dashboardSection" style="display:none;">
+    <div class="header-bar">
+      <span style="color:#fbd38d; font-weight:bold;">🎃 管理者モード</span>
+      <div>
+        <button class="btn-small" onclick="refreshDashboard()">更新</button>
+        <button class="btn-small" onclick="adminLogout()">ログアウト</button>
+      </div>
+    </div>
+
+    <div id="toastBox" class="toast"></div>
+
+    <!-- 1. 現在の申込状況 -->
+    <div class="card">
+      <h1 id="evName" style="margin-bottom:4px;">山谷ハロウィンウォーク</h1>
+      <div id="evDate" class="sub-title"></div>
+
+      <h2>１．現在の集計状況</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div id="stHouseholds" class="stat-num">-</div><div>参加世帯数</div></div>
+        <div class="stat-card"><div id="stChildren" class="stat-num">-</div><div>子ども総数</div></div>
+        <div class="stat-card"><div id="stSpots" class="stat-num">-</div><div>スポット協力数</div></div>
+        <div class="stat-card"><div id="stMissingGeo" class="stat-num">-</div><div>座標未取得件数</div></div>
+      </div>
+      <div id="stBreakdown" style="font-size:0.83rem; color:#cbd5e0;"></div>
+      <div id="stDeadline" style="font-size:0.83rem; color:#fbd38d; margin-top:6px;"></div>
+    </div>
+
+    <!-- 2. 公開フラグ操作 -->
+    <div class="card">
+      <h2>２．参加者マイページの公開切替</h2>
+      <div class="note">ボタンをタップすると、スプレッドシートの「config」が即座に ON / OFF 切り替わります。</div>
+
+      <div class="flag-row">
+        <div>
+          <div style="font-weight:bold; font-size:0.92rem;">グループ・お菓子公開</div>
+          <div style="font-size:0.78rem; color:#a0aec0;">マイページ項目5の表示</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="badgeGroup" class="badge-off">OFF</span>
+          <button class="btn-small" onclick="toggleFlag('グループ・お菓子公開')">切替</button>
+        </div>
+      </div>
+
+      <div class="flag-row">
+        <div>
+          <div style="font-weight:bold; font-size:0.92rem;">マップ公開</div>
+          <div style="font-size:0.78rem; color:#a0aec0;">マイページ項目6の表示</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="badgeMap" class="badge-off">OFF</span>
+          <button class="btn-small" onclick="toggleFlag('マップ公開')">切替</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. データメンテナンス -->
+    <div class="card">
+      <h2>３．データメンテナンス</h2>
+      <div class="note">番地から緯度・経度が未取得の行があれば、まとめてGoogleマップ座標を取得します。</div>
+      <button id="geoBtn" class="btn btn-sub" onclick="runFillGeocodes()">未取得の緯度・経度を一括取得する</button>
+      <a id="openSheetLink" href="#" target="_blank" class="btn btn-green">管理スプレッドシートを開く</a>
+    </div>
+
+    <!-- 4. 年次アーカイブ＆リセット -->
+    <div class="card">
+      <h2>４．年次アーカイブと新年度初期化</h2>
+      <div class="danger-zone">
+        <div style="font-size:0.85rem; color:#feb2b2; font-weight:bold; margin-bottom:6px;">⚠️ イベント終了後の年次切り替え操作</div>
+        <div class="note" style="color:#e2e8f0;">
+          現在の「申込一覧」（<strong id="archRowCount">0</strong>件）をアーカイブ用スプレッドシートへ「<strong id="archSheetName">-</strong>」として保存し、現役シートを空にして公開フラグをOFFに戻します。
+        </div>
+        <div id="archNotConfigured" style="color:#fc8181; font-size:0.82rem; margin-bottom:8px; display:none;">
+          ※configシートに「アーカイブ先スプレッドシートID」が未設定のため実行できません。
+        </div>
+        <button id="archiveBtn" class="btn btn-danger" onclick="runArchiveAndReset()">今年度分をアーカイブして初期化する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw_f8vuCGQwmsg8N9CcItGBMe1YVWSkhCP5ubdoK8CM4xGxx8yk3RAgIJDBGNu4vI4C/exec';
+  const SESSION_PASS_KEY = 'hw_sanya_admin_pass_v1';
+
+  window.onload = async function() {
+    const savedPass = sessionStorage.getItem(SESSION_PASS_KEY);
+    if (savedPass) {
+      await fetchDashboard(savedPass, true);
+    }
+  };
+
+  async function postAdmin(payload) {
+    const res = await fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error('通信エラー: ' + text.replace(/<[^>]*>/g, '').slice(0, 80));
+    }
+  }
+
+  async function doAdminLogin() {
+    const pass = document.getElementById('adminPassInput').value.trim();
+    const msg = document.getElementById('loginMsg');
+    const btn = document.getElementById('loginBtn');
+
+    if (!pass) {
+      msg.innerText = 'パスワードを入力してください。';
+      return;
+    }
+
+    btn.disabled = true;
+    msg.innerText = '認証中...';
+
+    const ok = await fetchDashboard(pass, false);
+    if (!ok) {
+      btn.disabled = false;
+    }
+  }
+
+  async function fetchDashboard(password, isAutoLogin) {
+    const msg = document.getElementById('loginMsg');
+    try {
+      const data = await postAdmin({ action: 'adminLogin', password: password });
+      if (!data.success) {
+        sessionStorage.removeItem(SESSION_PASS_KEY);
+        if (!isAutoLogin) msg.innerText = data.message;
+        return false;
+      }
+
+      sessionStorage.setItem(SESSION_PASS_KEY, password);
+      renderDashboard(data.dashboard);
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('dashboardSection').style.display = 'block';
+      return true;
+    } catch (e) {
+      if (!isAutoLogin) msg.innerText = e.message;
+      return false;
+    }
+  }
+
+  function renderDashboard(d) {
+    document.getElementById('evName').innerText = d.eventName;
+    document.getElementById('evDate').innerText = d.eventDate;
+
+    document.getElementById('stHouseholds').innerText = d.summary.households + '世帯';
+    document.getElementById('stChildren').innerText = d.summary.children + '人';
+    document.getElementById('stSpots').innerText = d.summary.totalSpots + 'ヶ所';
+    document.getElementById('stMissingGeo').innerText = d.missingGeoCount + '件';
+
+    document.getElementById('stBreakdown').innerText =
+      `内訳：両方 ${d.summary.both} / スポットのみ ${d.summary.spot} / 散策のみ ${d.summary.walk} / 欠席 ${d.summary.absent}`;
+    document.getElementById('stDeadline').innerText =
+      d.deadlineText ? `申込・変更期限：${d.deadlineText}（${d.isExpired ? '締切済' : '受付中'}）` : '';
+
+    const bGroup = document.getElementById('badgeGroup');
+    bGroup.innerText = d.isGroupPublished ? 'ON（公開中）' : 'OFF';
+    bGroup.className = d.isGroupPublished ? 'badge-on' : 'badge-off';
+
+    const bMap = document.getElementById('badgeMap');
+    bMap.innerText = d.isMapPublished ? 'ON（公開中）' : 'OFF';
+    bMap.className = d.isMapPublished ? 'badge-on' : 'badge-off';
+
+    document.getElementById('openSheetLink').href = d.sheetUrl;
+    document.getElementById('archRowCount').innerText = d.totalRows;
+    document.getElementById('archSheetName').innerText = d.nextArchiveSheetName;
+
+    const archBtn = document.getElementById('archiveBtn');
+    const archWarn = document.getElementById('archNotConfigured');
+    if (!d.hasArchiveId) {
+      archWarn.style.display = 'block';
+      archBtn.disabled = true;
+    } else {
+      archWarn.style.display = 'none';
+      archBtn.disabled = (d.totalRows === 0);
+    }
+  }
+
+  function showToast(text) {
+    const box = document.getElementById('toastBox');
+    box.innerText = '✅ ' + text;
+    box.style.display = 'block';
+    setTimeout(() => { box.style.display = 'none'; }, 5000);
+  }
+
+  async function refreshDashboard() {
+    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
+    if (!pass) return;
+    const data = await postAdmin({ action: 'adminGetDashboard', password: pass });
+    if (data.success) {
+      renderDashboard(data.dashboard);
+      showToast(data.message);
+    } else {
+      alert(data.message);
+    }
+  }
+
+  async function toggleFlag(flagKey) {
+    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
+    if (!pass) return;
+    if (!confirm(`「${flagKey}」の公開状態を切り替えますか？`)) return;
+
+    const data = await postAdmin({ action: 'adminToggleFlag', password: pass, flagKey: flagKey });
+    if (data.success) {
+      renderDashboard(data.dashboard);
+      showToast(data.message);
+    } else {
+      alert(data.message);
+    }
+  }
+
+  async function runFillGeocodes() {
+    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
+    if (!pass) return;
+    const btn = document.getElementById('geoBtn');
+    btn.disabled = true;
+    btn.innerText = '座標を取得中...';
+
+    try {
+      const data = await postAdmin({ action: 'adminFillGeocodes', password: pass });
+      if (data.success) {
+        renderDashboard(data.dashboard);
+        showToast(data.message);
+      } else {
+        alert(data.message);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerText = '未取得の緯度・経度を一括取得する';
+    }
+  }
+
+  async function runArchiveAndReset() {
+    const pass = sessionStorage.getItem(SESSION_PASS_KEY);
+    if (!pass) return;
+
+    const count = document.getElementById('archRowCount').innerText;
+    const sheetName = document.getElementById('archSheetName').innerText;
+
+    if (!confirm(`【最終確認】\n現在の申込データ（${count}件）をアーカイブ用スプレッドシートに「${sheetName}」として保存し、現役の申込一覧を空にします。\n\n実行してよろしいですか？`)) {
+      return;
+    }
+
+    const btn = document.getElementById('archiveBtn');
+    btn.disabled = true;
+    btn.innerText = 'アーカイブ処理中...';
+
+    try {
+      const data = await postAdmin({ action: 'adminArchiveAndReset', password: pass });
+      if (data.success) {
+        renderDashboard(data.dashboard);
+        showToast(data.message);
+        alert(data.message);
+      } else {
+        alert(data.message);
+        btn.disabled = false;
+      }
+    } finally {
+      btn.innerText = '今年度分をアーカイブして初期化する';
+    }
+  }
+
+  function adminLogout() {
+    sessionStorage.removeItem(SESSION_PASS_KEY);
+    location.reload();
+  }
+</script>
+</body>
+</html>
