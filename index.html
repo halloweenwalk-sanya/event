@@ -9,7 +9,7 @@
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { background: #1a202c; color: #f7fafc; margin: 0; padding: 16px; line-height: 1.5; }
-    .container { max-width: 460px; margin: 0 auto; }
+    .container { max-width: 480px; margin: 0 auto; }
     .card { background: #2d3748; padding: 20px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .logo-wrap { text-align: center; margin-bottom: 8px; }
     .logo-img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
@@ -19,11 +19,12 @@
     h2 { margin: 0 0 14px; color: #fbd38d; font-size: 1.1rem; border-bottom: 1px solid #4a5568; padding-bottom: 8px; }
     label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: #e2e8f0; }
     .hint { font-size: 0.78rem; color: #a0aec0; font-weight: normal; display: block; margin-top: 2px; }
-    input, select { width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 1rem; }
-    .addr-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    input, select, textarea { width: 100%; padding: 11px 12px; margin-bottom: 14px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 0.95rem; }
+    textarea { resize: vertical; min-height: 76px; }
+    .addr-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
     .addr-row input { margin-bottom: 0; text-align: center; }
-    .fixed-field { background: #1f2937; border: 1px solid #4a5568; padding: 11px 12px; border-radius: 8px; margin-bottom: 16px; color: #cbd5e0; font-size: 0.95rem; }
-    .btn { width: 100%; padding: 14px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; }
+    .fixed-field { background: #1f2937; border: 1px solid #4a5568; padding: 11px 12px; border-radius: 8px; margin-bottom: 14px; color: #cbd5e0; font-size: 0.95rem; }
+    .btn { width: 100%; padding: 13px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 0.98rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; }
     .btn:disabled { background: #718096; cursor: not-allowed; }
     .btn-sub { background: #4a5568; font-size: 0.9rem; padding: 11px; }
     .btn-line { background: #06C755; margin-top: 10px; }
@@ -32,6 +33,7 @@
     .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 10px; }
     .msg-ok { color: #68d391; font-size: 0.85rem; margin-top: 8px; }
     .closed-box { background: #1f2937; border: 1px solid #fc8181; color: #feb2b2; padding: 14px; border-radius: 8px; text-align: center; font-size: 0.9rem; }
+    .prep-box { background: #1f2937; border: 1px solid #63b3ed; color: #bee3f8; padding: 16px; border-radius: 8px; text-align: center; font-size: 0.92rem; }
 
     .welcome-box { background: #22543d; border: 1px solid #48bb78; padding: 16px; border-radius: 10px; margin-bottom: 16px; }
     .welcome-box h3 { margin: 0 0 8px; color: #9ae6b4; font-size: 1rem; }
@@ -46,6 +48,17 @@
     .stat-card { background: #1f2937; padding: 10px; border-radius: 8px; text-align: center; }
     .stat-num { font-size: 1.3rem; font-weight: bold; color: #ff9800; }
     .highlight-card { background: #1f2937; border: 1px solid #ff9800; padding: 12px; border-radius: 8px; margin-bottom: 8px; }
+
+    /* スレッド掲示板スタイル */
+    .pin-card { background: #2b2118; border: 1px solid #ff9800; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .thread-card { background: #1f2937; border: 1px solid #4a5568; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .post-meta { font-size: 0.78rem; color: #fbd38d; font-weight: bold; margin-bottom: 2px; }
+    .post-time { font-size: 0.72rem; color: #a0aec0; margin-bottom: 6px; }
+    .post-title { font-weight: bold; color: #fff; font-size: 0.96rem; margin-bottom: 4px; }
+    .post-body { font-size: 0.88rem; color: #e2e8f0; white-space: pre-wrap; word-break: break-word; }
+    .reply-list { margin-top: 10px; padding-left: 10px; border-left: 2px solid #4a5568; }
+    .reply-item { background: #2d3748; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; }
+    .reply-box { margin-top: 8px; display: none; }
   </style>
 </head>
 <body>
@@ -65,18 +78,26 @@
       <div id="dispDeadline" class="deadline-badge" style="display:none;"></div>
 
       <h2>新規参加申込（お名前不要）</h2>
+      <div id="regPrepBox" class="prep-box" style="display:none;">
+        🎃 ただいま次回開催の準備中です。<br>
+        参加募集の開始まで今しばらくお待ちください。
+      </div>
+
       <div id="regClosedBox" class="closed-box" style="display:none;">
-        参加申込の受付期限を過ぎたため、新規登録を締め切りました。<br>
+        参加申込の受付は終了しました。<br>
         <span style="font-size:0.8rem; color:#cbd5e0;">※すでに登録済みの方は、下のフォームからマイページを開けます。</span>
       </div>
 
       <div id="regFormWrap">
-        <label>番地（半角数字）<span class="hint">例：6001番地1 の場合は「6001」と「1」を入力</span></label>
+        <label>番地（半角数字）<span class="hint">例：6001番地1 は「6001」と「1」／枝番がない場合は右側を空欄</span></label>
         <div class="addr-row">
-          <input type="text" id="regAddr1" inputmode="numeric" maxlength="4" placeholder="6001">
+          <input type="text" id="regAddr1" inputmode="numeric" maxlength="5" placeholder="6001">
           <span>ー</span>
-          <input type="text" id="regAddr2" inputmode="numeric" maxlength="2" placeholder="1">
+          <input type="text" id="regAddr2" inputmode="numeric" maxlength="4" placeholder="任意">
         </div>
+
+        <label>ニックネーム（任意・掲示板の表示名）<span class="hint">例：タナカ、たなか家 など（未入力なら番地のみ表示）</span></label>
+        <input type="text" id="regNickname" maxlength="20" placeholder="例: タナカ">
 
         <label>参加する子どもの人数</label>
         <select id="regChildren">
@@ -108,11 +129,11 @@
 
     <div class="card">
       <h2>すでに登録済みの方（別スマホ・URL紛失時）</h2>
-      <label>登録した番地</label>
+      <label>登録した番地（枝番がない場合は右側を空欄）</label>
       <div class="addr-row">
-        <input type="text" id="recAddr1" inputmode="numeric" maxlength="4" placeholder="6001">
+        <input type="text" id="recAddr1" inputmode="numeric" maxlength="5" placeholder="6001">
         <span>ー</span>
-        <input type="text" id="recAddr2" inputmode="numeric" maxlength="2" placeholder="1">
+        <input type="text" id="recAddr2" inputmode="numeric" maxlength="4" placeholder="任意">
       </div>
 
       <label>登録時の携帯番号の下4桁</label>
@@ -179,10 +200,8 @@
       </div>
 
       <div class="menu-item">
-        <div class="menu-title" onclick="toggleMenu(7)">７．当日スタンプラリー <span>▼</span></div>
-        <div id="menu7" class="menu-content">
-          <div style="color:#cbd5e0;">※イベント当日にここからQRカメラを起動します（次ステップで実装）</div>
-        </div>
+        <div class="menu-title" onclick="toggleMenu(7, true)">７．当日のお知らせ・連絡掲示板 <span>▼</span></div>
+        <div id="menu7" class="menu-content"></div>
       </div>
     </div>
   </div>
@@ -196,6 +215,7 @@
   let currentPersonalUrl = '';
   let currentUserData = null;
   let currentConfigData = null;
+  let boardLoadedOnce = false;
 
   window.onload = async function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -226,6 +246,15 @@
     return String(str || '').replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');
   }
 
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   async function postGas(payload) {
     const res = await fetch(GAS_API_URL, {
       method: 'POST',
@@ -248,37 +277,42 @@
         document.getElementById('dispEventName').innerText = cfg.eventName;
         document.getElementById('dispEventDate').innerText = cfg.eventDate;
 
-        if (cfg.deadlineText) {
-          const badge = document.getElementById('dispDeadline');
-          badge.style.display = 'block';
-          badge.innerText = cfg.isExpired
-            ? `申込受付終了（締切：${cfg.deadlineText}）`
-            : `申込・内容変更の期限：${cfg.deadlineText} まで`;
-        }
-
-        if (cfg.isExpired) {
+        if (cfg.isPreparing) {
+          document.getElementById('regFormWrap').style.display = 'none';
+          document.getElementById('regPrepBox').style.display = 'block';
+        } else if (cfg.isClosed) {
           document.getElementById('regFormWrap').style.display = 'none';
           document.getElementById('regClosedBox').style.display = 'block';
+          if (cfg.deadlineText) {
+            const badge = document.getElementById('dispDeadline');
+            badge.style.display = 'block';
+            badge.innerText = `申込受付終了（締切：${cfg.deadlineText}）`;
+          }
+        } else if (cfg.deadlineText) {
+          const badge = document.getElementById('dispDeadline');
+          badge.style.display = 'block';
+          badge.innerText = `申込・内容変更の期限：${cfg.deadlineText} まで`;
         }
       }
     } catch (e) {
-      document.getElementById('dispEventDate').innerHTML = '<span style="color:#fc8181;">⚠️ ' + e.message + '</span>';
+      document.getElementById('dispEventDate').innerHTML = '<span style="color:#fc8181;">⚠️ ' + escapeHtml(e.message) + '</span>';
     }
   }
 
   async function submitRegister() {
     const a1 = toHalfNum(document.getElementById('regAddr1').value);
     const a2 = toHalfNum(document.getElementById('regAddr2').value);
+    const nickname = document.getElementById('regNickname').value.trim();
     const children = document.getElementById('regChildren').value;
     const type = document.getElementById('regType').value;
     const phone4 = toHalfNum(document.getElementById('regPhone4').value);
     const msg = document.getElementById('regMsg');
     const btn = document.getElementById('regBtn');
 
-    if (!a1 || !a2) { msg.innerText = '番地を正しく入力してください（例: 6001 と 1）'; return; }
+    if (!a1) { msg.innerText = '番地を入力してください（例: 6001）'; return; }
     if (phone4.length !== 4) { msg.innerText = '携帯番号の下4桁（半角数字4桁）を入力してください'; return; }
 
-    const address = `${a1}-${a2}`;
+    const address = a2 ? `${a1}-${a2}` : a1;
     btn.disabled = true;
     msg.innerText = '登録処理中...';
 
@@ -287,6 +321,7 @@
       const data = await postGas({
         action: 'register',
         address: address,
+        nickname: nickname,
         children: children,
         type: type,
         recoveryHash: recoveryHash
@@ -313,12 +348,12 @@
     const msg = document.getElementById('recMsg');
     const btn = document.getElementById('recBtn');
 
-    if (!a1 || !a2 || phone4.length !== 4) {
+    if (!a1 || phone4.length !== 4) {
       msg.innerText = '番地と携帯番号の下4桁を入力してください';
       return;
     }
 
-    const address = `${a1}-${a2}`;
+    const address = a2 ? `${a1}-${a2}` : a1;
     btn.disabled = true;
     msg.innerText = '照合中...';
 
@@ -368,7 +403,7 @@
     if (isFirstRegister) {
       document.getElementById('welcomeBox').style.display = 'block';
       document.getElementById('myUrlText').innerText = currentPersonalUrl;
-      const shareText = `【${data.config.eventName}】\nマイページ専用URLです。グループ確認や当日スタンプに使います。\n${currentPersonalUrl}`;
+      const shareText = `【${data.config.eventName}】\nマイページ専用URLです。グループ確認や当日連絡に使います。\n${currentPersonalUrl}`;
       document.getElementById('lineShareBtn').href = 'https://line.me/R/share?text=' + encodeURIComponent(shareText);
     } else {
       document.getElementById('welcomeBox').style.display = 'none';
@@ -385,29 +420,28 @@
       <div style="font-size:0.82rem; color:#cbd5e0; margin-top:4px;">内訳：両方 ${data.summary.both} / スポットのみ ${data.summary.spot} / 散策のみ ${data.summary.walk}${absentNote}</div>
     `;
 
-    // 2. あなたの申込内容（編集機能付き）
+    // 2. あなたの申込内容
     renderMenu2View();
 
     // 3. 参加者LINEグループ
     document.getElementById('menu3').innerHTML = `
       <div style="margin-bottom:10px; font-size:0.85rem;">当日の雨天連絡や写真共有用の任意グループです（参加自由）。</div>
-      <a href="${data.config.lineUrl}" target="_blank" class="btn btn-line">LINEグループを開く</a>
+      <a href="${escapeHtml(data.config.lineUrl)}" target="_blank" class="btn btn-line">LINEグループを開く</a>
     `;
 
-    // 4. 協力金について（PayPay URLボタン付き）
+    // 4. 協力金について
     let paypayBtnHtml = '';
     if (data.config.paypayUrl && data.config.paypayUrl.startsWith('http')) {
-      paypayBtnHtml = `<a href="${data.config.paypayUrl}" target="_blank" class="btn btn-paypay">PayPayで協力金を送金する</a>`;
+      paypayBtnHtml = `<a href="${escapeHtml(data.config.paypayUrl)}" target="_blank" class="btn btn-paypay">PayPayで協力金を送金する</a>`;
     }
     document.getElementById('menu4').innerHTML = `
-      <div>${data.config.paypayInfo}</div>
+      <div>${escapeHtml(data.config.paypayInfo)}</div>
       ${paypayBtnHtml}
     `;
 
-    // 5. グループ・準備お菓子数（フラグONで表示）
+    // 5. グループ・準備お菓子数
     if (data.config.isGroupPublished) {
       let groupCardsHtml = '';
-
       if (String(data.user.type).includes('欠席')) {
         groupCardsHtml = `<div style="color:#fc8181;">参加区分が「欠席」のため、グループ割り当てはありません。</div>`;
       } else {
@@ -415,7 +449,7 @@
           groupCardsHtml += `
             <div class="highlight-card">
               <div style="font-size:0.82rem; color:#cbd5e0;">お菓子スポット（提供スポットのグループ）</div>
-              <div style="font-size:1.3rem; font-weight:bold; color:#ff9800;">${data.user.candySpot}</div>
+              <div style="font-size:1.3rem; font-weight:bold; color:#ff9800;">${escapeHtml(data.user.candySpot)}</div>
             </div>
           `;
         }
@@ -423,14 +457,14 @@
           groupCardsHtml += `
             <div class="highlight-card">
               <div style="font-size:0.82rem; color:#cbd5e0;">所属グループ（お菓子をもらうグループ）</div>
-              <div style="font-size:1.3rem; font-weight:bold; color:#68d391;">${data.user.group}</div>
+              <div style="font-size:1.3rem; font-weight:bold; color:#68d391;">${escapeHtml(data.user.group)}</div>
             </div>
           `;
         }
         groupCardsHtml += `
           <div class="highlight-card">
             <div style="font-size:0.82rem; color:#cbd5e0;">準備するお菓子の数</div>
-            <div style="font-size:1.3rem; font-weight:bold; color:#fbd38d;">${data.user.candy} 個</div>
+            <div style="font-size:1.3rem; font-weight:bold; color:#fbd38d;">${escapeHtml(data.user.candy)} 個</div>
           </div>
         `;
       }
@@ -439,11 +473,18 @@
       document.getElementById('menu5').innerHTML = `<div style="color:#fbd38d;">※参加締切後にグループと準備するお菓子の数を計算して公開します。</div>`;
     }
 
-    // 6. マップの確認（フラグONで表示）
+    // 6. マップの確認
     if (data.config.isMapPublished) {
-      document.getElementById('menu6').innerHTML = `<a href="${data.config.mapUrl}" target="_blank" class="btn">スポットマップを開く</a>`;
+      document.getElementById('menu6').innerHTML = `<a href="${escapeHtml(data.config.mapUrl)}" target="_blank" class="btn">スポットマップを開く</a>`;
     } else {
       document.getElementById('menu6').innerHTML = `<div style="color:#fbd38d;">※スポット確定後にマップを公開します。</div>`;
+    }
+
+    // 7. 当日のお知らせ・連絡掲示板
+    if (!data.config.isBoardPublished) {
+      document.getElementById('menu7').innerHTML = `<div style="color:#fbd38d;">※イベント開催直前〜当日に公開します。</div>`;
+    } else if (!boardLoadedOnce) {
+      document.getElementById('menu7').innerHTML = `<div style="color:#cbd5e0;">読み込み中...</div>`;
     }
 
     showSection('menuSection');
@@ -452,31 +493,49 @@
   function renderMenu2View() {
     const u = currentUserData;
     const cfg = currentConfigData;
-    let editControlHtml = '';
+    const nickDisp = u.nickname ? escapeHtml(u.nickname) : '<span style="color:#a0aec0;">未設定（番地のみで表示）</span>';
+    const typeStyle = String(u.type).includes('欠席') ? 'color:#fc8181;' : '';
 
-    if (cfg.isExpired) {
-      editControlHtml = `<div style="font-size:0.8rem; color:#a0aec0; margin-top:10px;">※受付期限（${cfg.deadlineText}）を過ぎたため、内容の変更はできません。</div>`;
-    } else {
+    let editControlHtml = '';
+    if (cfg.canEdit) {
       const deadlineNote = cfg.deadlineText ? `<div style="font-size:0.78rem; color:#fbd38d; margin-top:6px;">変更期限：${cfg.deadlineText} まで</div>` : '';
       editControlHtml = `
-        <button class="btn btn-sub" style="margin-top:12px;" onclick="openEditForm()">登録内容を変更する</button>
+        <button class="btn btn-sub" style="margin-top:12px;" onclick="openEditForm(false)">登録内容を変更する</button>
         ${deadlineNote}
+      `;
+    } else {
+      editControlHtml = `
+        <div style="font-size:0.8rem; color:#a0aec0; margin-top:10px;">※参加区分・人数の変更受付は終了しています。</div>
+        <button class="btn btn-sub" style="margin-top:8px;" onclick="openEditForm(true)">ニックネームのみ変更する</button>
       `;
     }
 
-    const typeStyle = String(u.type).includes('欠席') ? 'color:#fc8181;' : '';
-
     document.getElementById('menu2').innerHTML = `
-      <div>・登録番地：<strong>${u.address}</strong></div>
+      <div>・登録番地：<strong>${escapeHtml(u.address)}</strong></div>
+      <div>・ニックネーム：<strong>${nickDisp}</strong></div>
       <div>・子どもの人数：<strong>${u.children} 人</strong></div>
-      <div>・参加区分：<strong style="${typeStyle}">${u.type}</strong></div>
+      <div>・参加区分：<strong style="${typeStyle}">${escapeHtml(u.type)}</strong></div>
       ${editControlHtml}
     `;
   }
 
-  function openEditForm() {
+  function openEditForm(nicknameOnly) {
     const u = currentUserData;
 
+    if (nicknameOnly) {
+      document.getElementById('menu2').innerHTML = `
+        <label>ニックネーム（任意・掲示板の表示名）</label>
+        <input type="text" id="editNickname" maxlength="20" value="${escapeHtml(u.nickname)}" placeholder="例: タナカ">
+        <div class="btn-row">
+          <button id="saveEditBtn" class="btn" onclick="submitUpdate(true)">ニックネームを保存</button>
+          <button class="btn btn-sub" onclick="renderMenu2View()">キャンセル</button>
+        </div>
+        <div id="editMsg" class="msg-error"></div>
+      `;
+      return;
+    }
+
+    const isAbsentInit = String(u.type).includes('欠席');
     const typeOptions = [
       '両方（散策＋スポット協力）',
       '散策のみ',
@@ -484,45 +543,73 @@
       '欠席'
     ].map(t => `<option value="${t}" ${u.type === t ? 'selected' : ''}>${t}</option>`).join('');
 
-    const childOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n =>
-      `<option value="${n}" ${Number(u.children) === n ? 'selected' : ''}>${n}人</option>`
-    ).join('');
+    const childOptions = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => {
+      const disabledAttr = (!isAbsentInit && n === 0) ? 'disabled' : '';
+      const selectedAttr = (Number(u.children) === n) ? 'selected' : '';
+      return `<option value="${n}" ${disabledAttr} ${selectedAttr}>${n}人</option>`;
+    }).join('');
 
     document.getElementById('menu2').innerHTML = `
-      <label>番地<span class="hint">※番地は変更できません（修正が必要な場合は運営へご連絡ください）</span></label>
-      <div class="fixed-field"><strong>${u.address}</strong></div>
+      <label>番地<span class="hint">※番地は変更できません</span></label>
+      <div class="fixed-field"><strong>${escapeHtml(u.address)}</strong></div>
 
-      <label>参加する子どもの人数</label>
-      <select id="editChildren">${childOptions}</select>
+      <label>ニックネーム（任意・掲示板の表示名）</label>
+      <input type="text" id="editNickname" maxlength="20" value="${escapeHtml(u.nickname)}" placeholder="例: タナカ">
 
       <label>参加区分</label>
-      <select id="editType">${typeOptions}</select>
+      <select id="editType" onchange="onEditTypeChange()">${typeOptions}</select>
+
+      <label>参加する子どもの人数<span class="hint">※「欠席」の場合は自動で0人になります</span></label>
+      <select id="editChildren" ${isAbsentInit ? 'disabled' : ''}>${childOptions}</select>
 
       <div class="btn-row">
-        <button id="saveEditBtn" class="btn" onclick="submitUpdate()">変更を保存する</button>
+        <button id="saveEditBtn" class="btn" onclick="submitUpdate(false)">変更を保存する</button>
         <button class="btn btn-sub" onclick="renderMenu2View()">キャンセル</button>
       </div>
       <div id="editMsg" class="msg-error"></div>
     `;
   }
 
-  async function submitUpdate() {
-    const children = document.getElementById('editChildren').value;
-    const type = document.getElementById('editType').value;
+  function onEditTypeChange() {
+    const typeVal = document.getElementById('editType').value;
+    const childSel = document.getElementById('editChildren');
+    const zeroOpt = childSel.querySelector('option[value="0"]');
+
+    if (typeVal.includes('欠席')) {
+      if (zeroOpt) zeroOpt.disabled = false;
+      childSel.value = '0';
+      childSel.disabled = true;
+    } else {
+      if (zeroOpt) zeroOpt.disabled = true;
+      childSel.disabled = false;
+      if (childSel.value === '0') childSel.value = '1';
+    }
+  }
+
+  async function submitUpdate(nicknameOnly) {
+    const nickname = document.getElementById('editNickname').value.trim();
     const msg = document.getElementById('editMsg');
     const btn = document.getElementById('saveEditBtn');
+
+    const payload = {
+      action: 'update',
+      token: currentUserData.token,
+      nicknameOnly: nicknameOnly,
+      nickname: nickname
+    };
+
+    if (!nicknameOnly) {
+      const type = document.getElementById('editType').value;
+      const children = type.includes('欠席') ? 0 : document.getElementById('editChildren').value;
+      payload.type = type;
+      payload.children = children;
+    }
 
     btn.disabled = true;
     msg.innerText = '更新中...';
 
     try {
-      const data = await postGas({
-        action: 'update',
-        token: currentUserData.token,
-        children: children,
-        type: type
-      });
-
+      const data = await postGas(payload);
       if (!data.success) {
         msg.innerText = data.message;
         btn.disabled = false;
@@ -538,15 +625,186 @@
     }
   }
 
+  // ==========================================
+  // 掲示板機能
+  // ==========================================
+  async function loadBoardData() {
+    if (!currentConfigData || !currentConfigData.isBoardPublished) return;
+    const box = document.getElementById('menu7');
+    box.innerHTML = `<div style="color:#cbd5e0;">読み込み中...</div>`;
+
+    try {
+      const data = await postGas({ action: 'getBoard', token: currentUserData.token });
+      if (!data.success) {
+        box.innerHTML = `<div class="msg-error">${escapeHtml(data.message)}</div>`;
+        return;
+      }
+      boardLoadedOnce = true;
+      renderBoardView(data.board);
+    } catch (e) {
+      box.innerHTML = `<div class="msg-error">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  function renderBoardView(board) {
+    const box = document.getElementById('menu7');
+
+    let annHtml = '';
+    if (board.announcements && board.announcements.length > 0) {
+      annHtml += `<div style="font-weight:bold; color:#ff9800; margin-bottom:6px; font-size:0.9rem;">📢 運営からのお知らせ</div>`;
+      board.announcements.forEach(a => {
+        annHtml += `
+          <div class="pin-card">
+            <div class="post-meta">${escapeHtml(a.displayName)}</div>
+            <div class="post-time">${escapeHtml(a.createdAt)}</div>
+            <div class="post-title">${escapeHtml(a.title)}</div>
+            <div class="post-body">${escapeHtml(a.body)}</div>
+          </div>
+        `;
+      });
+    }
+
+    let threadsHtml = `<div style="font-weight:bold; color:#fbd38d; margin:12px 0 8px; font-size:0.9rem;">💬 参加者・スポット連絡スレッド</div>`;
+    if (!board.threads || board.threads.length === 0) {
+      threadsHtml += `<div style="color:#a0aec0; font-size:0.85rem; margin-bottom:12px;">まだスレッドはありません。最初の投稿をしてみましょう！</div>`;
+    } else {
+      board.threads.forEach(t => {
+        let repliesHtml = '';
+        if (t.replies && t.replies.length > 0) {
+          repliesHtml += `<div class="reply-list">`;
+          t.replies.forEach(r => {
+            repliesHtml += `
+              <div class="reply-item">
+                <div class="post-meta">${escapeHtml(r.displayName)}</div>
+                <div class="post-time">${escapeHtml(r.createdAt)}</div>
+                <div class="post-body">${escapeHtml(r.body)}</div>
+              </div>
+            `;
+          });
+          repliesHtml += `</div>`;
+        }
+
+        threadsHtml += `
+          <div class="thread-card">
+            <div class="post-meta">${escapeHtml(t.displayName)}</div>
+            <div class="post-time">${escapeHtml(t.createdAt)}</div>
+            <div class="post-title">${escapeHtml(t.title)}</div>
+            <div class="post-body">${escapeHtml(t.body)}</div>
+            ${repliesHtml}
+            <div style="margin-top:8px;">
+              <button class="btn-small" onclick="toggleReplyBox('${escapeHtml(t.id)}')">💬 返信する</button>
+            </div>
+            <div id="replyBox_${escapeHtml(t.id)}" class="reply-box">
+              <textarea id="replyText_${escapeHtml(t.id)}" maxlength="500" placeholder="返信内容を入力..."></textarea>
+              <button class="btn btn-sub" onclick="submitBoardReply('${escapeHtml(t.id)}')">返信を送信する</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    box.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <button class="btn-small" onclick="toggleNewThreadForm()">＋ 新しいスレッドを立てる</button>
+        <button class="btn-small" onclick="loadBoardData()">🔄 最新に更新</button>
+      </div>
+
+      <div id="newThreadForm" style="display:none; background:#1f2937; padding:12px; border-radius:8px; margin-bottom:14px; border:1px solid #4a5568;">
+        <label>スレッドのタイトル（40文字以内）</label>
+        <input type="text" id="newThreadTitle" maxlength="40" placeholder="例：Aグループお菓子残り状況／雨天時の連絡">
+        <label>本文（500文字以内）</label>
+        <textarea id="newThreadBody" maxlength="500" placeholder="内容を入力してください"></textarea>
+        <div class="btn-row">
+          <button id="postThreadBtn" class="btn" onclick="submitNewThread()">投稿する</button>
+          <button class="btn btn-sub" onclick="toggleNewThreadForm()">閉じる</button>
+        </div>
+      </div>
+
+      ${annHtml}
+      ${threadsHtml}
+    `;
+  }
+
+  function toggleNewThreadForm() {
+    const el = document.getElementById('newThreadForm');
+    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+  }
+
+  function toggleReplyBox(threadId) {
+    const el = document.getElementById('replyBox_' + threadId);
+    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+  }
+
+  async function submitNewThread() {
+    const title = document.getElementById('newThreadTitle').value.trim();
+    const body = document.getElementById('newThreadBody').value.trim();
+    const btn = document.getElementById('postThreadBtn');
+
+    if (!title || !body) {
+      alert('タイトルと本文を入力してください。');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = '投稿中...';
+    try {
+      const data = await postGas({
+        action: 'postBoard',
+        token: currentUserData.token,
+        title: title,
+        body: body
+      });
+      if (!data.success) {
+        alert(data.message);
+        btn.disabled = false;
+        btn.innerText = '投稿する';
+        return;
+      }
+      renderBoardView(data.board);
+    } catch (e) {
+      alert(e.message);
+      btn.disabled = false;
+      btn.innerText = '投稿する';
+    }
+  }
+
+  async function submitBoardReply(parentId) {
+    const body = document.getElementById('replyText_' + parentId).value.trim();
+    if (!body) {
+      alert('返信内容を入力してください。');
+      return;
+    }
+
+    try {
+      const data = await postGas({
+        action: 'postBoard',
+        token: currentUserData.token,
+        parentId: parentId,
+        body: body
+      });
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+      renderBoardView(data.board);
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   function showSection(id) {
     ['loadingSection', 'authSection', 'menuSection'].forEach(sec => {
       document.getElementById(sec).style.display = (sec === id) ? 'block' : 'none';
     });
   }
 
-  function toggleMenu(num) {
+  function toggleMenu(num, isBoard) {
     const el = document.getElementById('menu' + num);
-    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    const willOpen = (el.style.display !== 'block');
+    el.style.display = willOpen ? 'block' : 'none';
+    if (willOpen && isBoard && !boardLoadedOnce) {
+      loadBoardData();
+    }
   }
 
   function copyMyUrl() {
