@@ -9,7 +9,7 @@
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { background: #1a202c; color: #f7fafc; margin: 0; padding: 16px; line-height: 1.5; }
-    .container { max-width: 480px; margin: 0 auto; }
+    .container { max-width: 500px; margin: 0 auto; }
     .card { background: #2d3748; padding: 20px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .logo-wrap { text-align: center; margin-bottom: 8px; }
     .logo-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
@@ -17,10 +17,12 @@
     .sub-title { text-align: center; font-size: 0.85rem; color: #cbd5e0; margin-bottom: 16px; }
     h2 { margin: 0 0 12px; color: #fbd38d; font-size: 1.05rem; border-bottom: 1px solid #4a5568; padding-bottom: 8px; }
     label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: #e2e8f0; }
-    input { width: 100%; padding: 12px; margin-bottom: 14px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 1rem; }
+    input, textarea { width: 100%; padding: 11px 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 0.95rem; }
+    textarea { resize: vertical; min-height: 70px; }
     .btn { width: 100%; padding: 13px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
     .btn:disabled { background: #718096; cursor: not-allowed; }
     .btn-sub { background: #4a5568; }
+    .btn-blue { background: #2b6cb0; }
     .btn-green { background: #2f855a; }
     .btn-danger { background: #c53030; }
     .btn-small { background: none; border: 1px solid #718096; color: #cbd5e0; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; }
@@ -30,6 +32,10 @@
     .stat-card { background: #1f2937; padding: 10px; border-radius: 8px; text-align: center; }
     .stat-num { font-size: 1.3rem; font-weight: bold; color: #ff9800; }
 
+    .status-btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+    .status-chip { padding: 9px 6px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #cbd5e0; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; }
+    .status-chip.active { background: #ff7a00; color: #fff; border-color: #ff9800; }
+
     .flag-row { display: flex; justify-content: space-between; align-items: center; background: #1f2937; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
     .badge-on { background: #2f855a; color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
     .badge-off { background: #4a5568; color: #cbd5e0; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
@@ -38,21 +44,73 @@
     .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 8px; }
     .danger-zone { border: 1px solid #c53030; background: #1f2937; padding: 14px; border-radius: 8px; margin-top: 8px; }
     .note { font-size: 0.8rem; color: #a0aec0; margin-bottom: 10px; }
+
+    .mod-item { background: #1f2937; border: 1px solid #4a5568; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+    .mod-hidden { opacity: 0.55; border-style: dashed; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- ログイン画面 -->
-  <div id="loginSection" class="card">
+  <!-- 読み込み中 -->
+  <div id="loadingSection" class="card" style="text-align:center; padding:40px 20px;">
+    <div class="logo-wrap"><img src="icon.png" class="logo-img" onerror="this.style.display='none'"></div>
+    <div>管理システム確認中...</div>
+  </div>
+
+  <!-- 初回セットアップ画面（管理者情報初期化後） -->
+  <div id="setupSection" class="card" style="display:none;">
+    <div class="logo-wrap"><img src="icon.png" class="logo-img" onerror="this.style.display='none'"></div>
+    <h1>管理者 初期セットアップ</h1>
+    <div id="setupEventName" class="sub-title">山谷ハロウィンウォーク</div>
+    <div class="note" style="color:#fbd38d;">
+      管理者情報が未設定です。新しいパスワードと2段階認証用のメールアドレスを登録してください。
+    </div>
+
+    <div id="setupStep1">
+      <label>新しい管理者パスワード（4文字以上）</label>
+      <input type="password" id="setupPass1" placeholder="パスワードを入力">
+
+      <label>新しい管理者パスワード（確認用）</label>
+      <input type="password" id="setupPass2" placeholder="もう一度入力">
+
+      <label>認証コード受信メールアドレス</label>
+      <input type="email" id="setupEmail" placeholder="example@gmail.com">
+
+      <button id="sendSetupBtn" class="btn" onclick="sendSetupCode()">確認コードをメール送信する</button>
+    </div>
+
+    <div id="setupStep2" style="display:none;">
+      <div class="note" style="color:#68d391;">メールに届いた6桁の確認コードを入力してください（有効期限10分）。</div>
+      <label>6桁の確認コード</label>
+      <input type="tel" id="setupCodeInput" inputmode="numeric" maxlength="6" placeholder="123456">
+      <button id="verifySetupBtn" class="btn" onclick="verifySetupCode()">認証して初期設定を完了する</button>
+      <button class="btn btn-sub" onclick="resetSetupForm()">入力をやり直す</button>
+    </div>
+
+    <div id="setupMsg" class="msg-error"></div>
+  </div>
+
+  <!-- 通常ログイン画面 -->
+  <div id="loginSection" class="card" style="display:none;">
     <div class="logo-wrap"><img src="icon.png" class="logo-img" onerror="this.style.display='none'"></div>
     <h1>運営管理メニュー</h1>
-    <div class="sub-title">山谷ハロウィンウォーク 管理者専用</div>
+    <div id="loginEventName" class="sub-title">山谷ハロウィンウォーク 管理者専用</div>
 
-    <label>管理者パスワード</label>
-    <input type="password" id="adminPassInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') doAdminLogin()">
+    <div id="loginStep1">
+      <label>管理者パスワード</label>
+      <input type="password" id="adminPassInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') doAdminLogin()">
+      <button id="loginBtn" class="btn" onclick="doAdminLogin()">ログインする</button>
+    </div>
 
-    <button id="loginBtn" class="btn" onclick="doAdminLogin()">管理画面にログイン</button>
+    <div id="loginStep2" style="display:none;">
+      <div id="twoFaInfo" class="note" style="color:#68d391;"></div>
+      <label>6桁の認証コード</label>
+      <input type="tel" id="twoFaCodeInput" inputmode="numeric" maxlength="6" placeholder="123456" onkeydown="if(event.key==='Enter') verifyTwoFaCode()">
+      <button id="verify2faBtn" class="btn" onclick="verifyTwoFaCode()">コードを認証してログイン</button>
+      <button class="btn btn-sub" onclick="backToLoginStep1()">パスワード入力に戻る</button>
+    </div>
+
     <div id="loginMsg" class="msg-error"></div>
 
     <div style="text-align:center; margin-top:16px;">
@@ -88,15 +146,20 @@
       <div id="stDeadline" style="font-size:0.83rem; color:#fbd38d; margin-top:6px;"></div>
     </div>
 
-    <!-- 2. 公開フラグ操作 -->
+    <!-- 2. 受付ステータス・公開フラグ操作 -->
     <div class="card">
-      <h2>２．参加者マイページの公開切替</h2>
-      <div class="note">ボタンをタップすると、スプレッドシートの「config」が即座に ON / OFF 切り替わります。</div>
+      <h2>２．受付状態・マイページ公開設定</h2>
+      <label>受付ステータス（トップページの申込フォーム制御）</label>
+      <div class="status-btn-row">
+        <button id="stBtnPrep" class="status-chip" onclick="setReceptionStatus('準備中')">準備中</button>
+        <button id="stBtnOpen" class="status-chip" onclick="setReceptionStatus('受付中')">受付中</button>
+        <button id="stBtnClosed" class="status-chip" onclick="setReceptionStatus('受付終了')">受付終了</button>
+      </div>
 
       <div class="flag-row">
         <div>
-          <div style="font-weight:bold; font-size:0.92rem;">グループ・お菓子公開</div>
-          <div style="font-size:0.78rem; color:#a0aec0;">マイページ項目5の表示</div>
+          <div style="font-weight:bold; font-size:0.9rem;">グループ・お菓子公開</div>
+          <div style="font-size:0.76rem; color:#a0aec0;">マイページ項目5の表示</div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span id="badgeGroup" class="badge-off">OFF</span>
@@ -106,31 +169,56 @@
 
       <div class="flag-row">
         <div>
-          <div style="font-weight:bold; font-size:0.92rem;">マップ公開</div>
-          <div style="font-size:0.78rem; color:#a0aec0;">マイページ項目6の表示</div>
+          <div style="font-weight:bold; font-size:0.9rem;">マップ公開</div>
+          <div style="font-size:0.76rem; color:#a0aec0;">マイページ項目6の表示</div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span id="badgeMap" class="badge-off">OFF</span>
           <button class="btn-small" onclick="toggleFlag('マップ公開')">切替</button>
         </div>
       </div>
+
+      <div class="flag-row">
+        <div>
+          <div style="font-weight:bold; font-size:0.9rem;">当日連絡掲示板の公開</div>
+          <div style="font-size:0.76rem; color:#a0aec0;">マイページ項目7の表示</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="badgeBoard" class="badge-off">OFF</span>
+          <button class="btn-small" onclick="toggleFlag('掲示板公開')">切替</button>
+        </div>
+      </div>
     </div>
 
-    <!-- 3. データメンテナンス -->
+    <!-- 3. 地図CSV出力・データメンテナンス -->
     <div class="card">
-      <h2>３．データメンテナンス</h2>
-      <div class="note">番地から緯度・経度が未取得の行があれば、まとめてGoogleマップ座標を取得します。</div>
+      <h2>３．地図CSV出力・データメンテナンス</h2>
+      <div class="note">Googleマイマップ取込用のWKT形式CSV（WKT / 名前[A連番] / 説明[番地]）を端末へ直接ダウンロードします。</div>
+      <button class="btn btn-blue" onclick="downloadWktCsv('spots')">📍 スポット協力世帯のみCSV出力（WKT形式）</button>
+      <button class="btn btn-sub" onclick="downloadWktCsv('all')">🏘️ 全参加世帯CSV出力（欠席除く・WKT形式）</button>
       <button id="geoBtn" class="btn btn-sub" onclick="runFillGeocodes()">未取得の緯度・経度を一括取得する</button>
       <a id="openSheetLink" href="#" target="_blank" class="btn btn-green">管理スプレッドシートを開く</a>
     </div>
 
-    <!-- 4. 年次アーカイブ＆リセット -->
+    <!-- 4. 掲示板管理（運営お知らせ投稿・モデレーション） -->
     <div class="card">
-      <h2>４．年次アーカイブと新年度初期化</h2>
+      <h2>４．当日連絡掲示板の管理</h2>
+      <label>運営からのお知らせ投稿（掲示板の最上部に固定表示）</label>
+      <input type="text" id="adminBoardTitle" maxlength="40" placeholder="例：【重要】本日の開催について">
+      <textarea id="adminBoardBody" maxlength="500" placeholder="参加者全員に伝えたい連絡事項を入力"></textarea>
+      <button id="adminPostBoardBtn" class="btn" onclick="submitAdminAnnouncement()">運営お知らせを投稿する</button>
+
+      <div style="font-weight:bold; font-size:0.88rem; color:#fbd38d; margin:14px 0 8px;">投稿一覧（表示／非表示の切替）</div>
+      <div id="adminBoardModList"></div>
+    </div>
+
+    <!-- 5. 年次アーカイブ＆リセット -->
+    <div class="card">
+      <h2>５．年次アーカイブと新年度初期化</h2>
       <div class="danger-zone">
         <div style="font-size:0.85rem; color:#feb2b2; font-weight:bold; margin-bottom:6px;">⚠️ イベント終了後の年次切り替え操作</div>
         <div class="note" style="color:#e2e8f0;">
-          現在の「申込一覧」（<strong id="archRowCount">0</strong>件）をアーカイブ用スプレッドシートへ「<strong id="archSheetName">-</strong>」として保存し、現役シートを空にして公開フラグをOFFに戻します。
+          現在の「申込一覧」（<strong id="archRowCount">0</strong>件）および掲示板データをアーカイブ用スプレッドシートへ「<strong id="archSheetName">-</strong>」として保存し、現役シートを空にして初期状態に戻します。
         </div>
         <div id="archNotConfigured" style="color:#fc8181; font-size:0.82rem; margin-bottom:8px; display:none;">
           ※configシートに「アーカイブ先スプレッドシートID」が未設定のため実行できません。
@@ -139,11 +227,11 @@
       </div>
     </div>
 
-    <!-- 5. 管理者パスワード変更 -->
+    <!-- 6. パスワード変更 -->
     <div class="card">
-      <h2>５．管理者パスワードの変更（引き継ぎ用）</h2>
-      <div class="note">新しいパスワードは端末内でSHA-256ハッシュ化されてから保存されます。</div>
-      <button id="togglePassFormBtn" class="btn btn-sub" onclick="togglePassForm()">パスワードを変更する</button>
+      <h2>６．管理者セキュリティ設定</h2>
+      <div id="dispAdminEmail" class="note"></div>
+      <button class="btn btn-sub" onclick="togglePassForm()">管理者パスワードを変更する</button>
       <div id="passChangeWrap" style="display:none; margin-top:12px;">
         <label>新しいパスワード（4文字以上）</label>
         <input type="password" id="newPass1" placeholder="新しいパスワード">
@@ -160,13 +248,55 @@
   const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw_f8vuCGQwmsg8N9CcItGBMe1YVWSkhCP5ubdoK8CM4xGxx8yk3RAgIJDBGNu4vI4C/exec';
   const ADMIN_HASH_SALT = 'hw_sanya_admin_salt_2027';
   const SESSION_HASH_KEY = 'hw_sanya_admin_hash_v1';
+  const DEVICE_TOKEN_KEY = 'hw_sanya_admin_device_v1';
+
+  let pendingLoginHash = '';
 
   window.onload = async function() {
-    const savedHash = sessionStorage.getItem(SESSION_HASH_KEY);
-    if (savedHash) {
-      await fetchDashboard(savedHash, true);
+    try {
+      const status = await postAdmin({ action: 'adminCheckStatus' });
+      if (status.success) {
+        document.getElementById('setupEventName').innerText = status.eventName;
+        document.getElementById('loginEventName').innerText = status.eventName + ' 管理者専用';
+
+        if (status.needsSetup) {
+          sessionStorage.removeItem(SESSION_HASH_KEY);
+          showSection('setupSection');
+          return;
+        }
+      }
+
+      const savedHash = sessionStorage.getItem(SESSION_HASH_KEY);
+      const deviceToken = localStorage.getItem(DEVICE_TOKEN_KEY) || '';
+      if (savedHash) {
+        const data = await postAdmin({ action: 'adminLogin', passwordHash: savedHash, deviceToken: deviceToken });
+        if (data.success && !data.require2FA) {
+          renderDashboard(data.dashboard);
+          showSection('dashboardSection');
+          return;
+        }
+      }
+      showSection('loginSection');
+    } catch (e) {
+      showSection('loginSection');
+      document.getElementById('loginMsg').innerText = e.message;
     }
   };
+
+  function showSection(id) {
+    ['loadingSection', 'setupSection', 'loginSection', 'dashboardSection'].forEach(sec => {
+      document.getElementById(sec).style.display = (sec === id) ? 'block' : 'none';
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   async function createAdminHash(pass) {
     const raw = `${String(pass).trim()}:${ADMIN_HASH_SALT}`;
@@ -189,47 +319,171 @@
     }
   }
 
+  // ==========================================
+  // 初回セットアップ処理
+  // ==========================================
+  async function sendSetupCode() {
+    const p1 = document.getElementById('setupPass1').value.trim();
+    const p2 = document.getElementById('setupPass2').value.trim();
+    const email = document.getElementById('setupEmail').value.trim();
+    const msg = document.getElementById('setupMsg');
+    const btn = document.getElementById('sendSetupBtn');
+
+    if (p1.length < 4) { msg.innerText = 'パスワードは4文字以上で設定してください。'; return; }
+    if (p1 !== p2) { msg.innerText = '確認用のパスワードが一致しません。'; return; }
+    if (!email || !email.includes('@')) { msg.innerText = '有効なメールアドレスを入力してください。'; return; }
+
+    btn.disabled = true;
+    msg.innerText = '確認コードを送信中...';
+
+    try {
+      const hash = await createAdminHash(p1);
+      const data = await postAdmin({
+        action: 'adminSendSetupCode',
+        newPasswordHash: hash,
+        email: email
+      });
+      if (!data.success) {
+        msg.innerText = data.message;
+        btn.disabled = false;
+        return;
+      }
+      msg.innerText = '';
+      document.getElementById('setupStep1').style.display = 'none';
+      document.getElementById('setupStep2').style.display = 'block';
+    } catch (e) {
+      msg.innerText = e.message;
+      btn.disabled = false;
+    }
+  }
+
+  async function verifySetupCode() {
+    const code = document.getElementById('setupCodeInput').value.trim();
+    const msg = document.getElementById('setupMsg');
+    const btn = document.getElementById('verifySetupBtn');
+
+    if (code.length !== 6) { msg.innerText = '6桁の確認コードを入力してください。'; return; }
+
+    btn.disabled = true;
+    msg.innerText = '認証中...';
+
+    try {
+      const data = await postAdmin({ action: 'adminVerifySetup', code: code });
+      if (!data.success) {
+        msg.innerText = data.message;
+        btn.disabled = false;
+        return;
+      }
+
+      sessionStorage.setItem(SESSION_HASH_KEY, data.passwordHash);
+      if (data.deviceToken) localStorage.setItem(DEVICE_TOKEN_KEY, data.deviceToken);
+      renderDashboard(data.dashboard);
+      showSection('dashboardSection');
+      showToast(data.message);
+    } catch (e) {
+      msg.innerText = e.message;
+      btn.disabled = false;
+    }
+  }
+
+  function resetSetupForm() {
+    document.getElementById('setupStep2').style.display = 'none';
+    document.getElementById('setupStep1').style.display = 'block';
+    document.getElementById('sendSetupBtn').disabled = false;
+    document.getElementById('setupMsg').innerText = '';
+  }
+
+  // ==========================================
+  // 通常ログイン＆2段階認証
+  // ==========================================
   async function doAdminLogin() {
     const pass = document.getElementById('adminPassInput').value.trim();
     const msg = document.getElementById('loginMsg');
     const btn = document.getElementById('loginBtn');
 
-    if (!pass) {
-      msg.innerText = 'パスワードを入力してください。';
-      return;
-    }
+    if (!pass) { msg.innerText = 'パスワードを入力してください。'; return; }
 
     btn.disabled = true;
     msg.innerText = '認証中...';
 
-    const hash = await createAdminHash(pass);
-    const ok = await fetchDashboard(hash, false);
-    if (!ok) {
+    try {
+      const hash = await createAdminHash(pass);
+      const deviceToken = localStorage.getItem(DEVICE_TOKEN_KEY) || '';
+      const data = await postAdmin({
+        action: 'adminLogin',
+        passwordHash: hash,
+        deviceToken: deviceToken
+      });
+
+      if (!data.success) {
+        msg.innerText = data.message;
+        btn.disabled = false;
+        return;
+      }
+
+      if (data.require2FA) {
+        pendingLoginHash = hash;
+        msg.innerText = '';
+        document.getElementById('twoFaInfo').innerText = data.message;
+        document.getElementById('loginStep1').style.display = 'none';
+        document.getElementById('loginStep2').style.display = 'block';
+        btn.disabled = false;
+        return;
+      }
+
+      sessionStorage.setItem(SESSION_HASH_KEY, hash);
+      renderDashboard(data.dashboard);
+      showSection('dashboardSection');
+    } catch (e) {
+      msg.innerText = e.message;
       btn.disabled = false;
     }
   }
 
-  async function fetchDashboard(passwordHash, isAutoLogin) {
+  async function verifyTwoFaCode() {
+    const code = document.getElementById('twoFaCodeInput').value.trim();
     const msg = document.getElementById('loginMsg');
+    const btn = document.getElementById('verify2faBtn');
+
+    if (code.length !== 6) { msg.innerText = '6桁の認証コードを入力してください。'; return; }
+
+    btn.disabled = true;
+    msg.innerText = '確認中...';
+
     try {
-      const data = await postAdmin({ action: 'adminLogin', passwordHash: passwordHash });
+      const data = await postAdmin({
+        action: 'adminVerify2FA',
+        passwordHash: pendingLoginHash,
+        code: code
+      });
+
       if (!data.success) {
-        sessionStorage.removeItem(SESSION_HASH_KEY);
-        if (!isAutoLogin) msg.innerText = data.message;
-        return false;
+        msg.innerText = data.message;
+        btn.disabled = false;
+        return;
       }
 
-      sessionStorage.setItem(SESSION_HASH_KEY, passwordHash);
+      sessionStorage.setItem(SESSION_HASH_KEY, pendingLoginHash);
+      if (data.deviceToken) localStorage.setItem(DEVICE_TOKEN_KEY, data.deviceToken);
       renderDashboard(data.dashboard);
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('dashboardSection').style.display = 'block';
-      return true;
+      showSection('dashboardSection');
+      showToast(data.message);
     } catch (e) {
-      if (!isAutoLogin) msg.innerText = e.message;
-      return false;
+      msg.innerText = e.message;
+      btn.disabled = false;
     }
   }
 
+  function backToLoginStep1() {
+    pendingLoginHash = '';
+    document.getElementById('loginStep2').style.display = 'none';
+    document.getElementById('loginStep1').style.display = 'block';
+    document.getElementById('loginMsg').innerText = '';
+  }
+
+  // ==========================================
+  // ダッシュボード描画・各種操作
+  // ==========================================
   function renderDashboard(d) {
     document.getElementById('evName').innerText = d.eventName;
     document.getElementById('evDate').innerText = d.eventDate;
@@ -242,8 +496,14 @@
     document.getElementById('stBreakdown').innerText =
       `内訳：両方 ${d.summary.both} / スポットのみ ${d.summary.spot} / 散策のみ ${d.summary.walk} / 欠席 ${d.summary.absent}`;
     document.getElementById('stDeadline').innerText =
-      d.deadlineText ? `申込・変更期限：${d.deadlineText}（${d.isExpired ? '締切済' : '受付中'}）` : '';
+      d.deadlineText ? `申込・変更期限：${d.deadlineText}（${d.isExpired ? '期限経過' : '期限内'}）` : '';
 
+    // 受付ステータスチップ
+    document.getElementById('stBtnPrep').className = 'status-chip' + (d.receptionStatus === '準備中' ? ' active' : '');
+    document.getElementById('stBtnOpen').className = 'status-chip' + (d.receptionStatus === '受付中' ? ' active' : '');
+    document.getElementById('stBtnClosed').className = 'status-chip' + (d.receptionStatus === '受付終了' ? ' active' : '');
+
+    // 公開フラグ
     const bGroup = document.getElementById('badgeGroup');
     bGroup.innerText = d.isGroupPublished ? 'ON（公開中）' : 'OFF';
     bGroup.className = d.isGroupPublished ? 'badge-on' : 'badge-off';
@@ -252,9 +512,14 @@
     bMap.innerText = d.isMapPublished ? 'ON（公開中）' : 'OFF';
     bMap.className = d.isMapPublished ? 'badge-on' : 'badge-off';
 
+    const bBoard = document.getElementById('badgeBoard');
+    bBoard.innerText = d.isBoardPublished ? 'ON（公開中）' : 'OFF';
+    bBoard.className = d.isBoardPublished ? 'badge-on' : 'badge-off';
+
     document.getElementById('openSheetLink').href = d.sheetUrl;
     document.getElementById('archRowCount').innerText = d.totalRows;
     document.getElementById('archSheetName').innerText = d.nextArchiveSheetName;
+    document.getElementById('dispAdminEmail').innerText = `2段階認証メール通知先：${d.adminEmailMasked}`;
 
     const archBtn = document.getElementById('archiveBtn');
     const archWarn = document.getElementById('archNotConfigured');
@@ -265,6 +530,46 @@
       archWarn.style.display = 'none';
       archBtn.disabled = (d.totalRows === 0);
     }
+
+    renderBoardModeration(d.board);
+  }
+
+  function renderBoardModeration(board) {
+    const container = document.getElementById('adminBoardModList');
+    if (!board) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const flatList = [];
+    (board.announcements || []).forEach(a => {
+      flatList.push(a);
+      (a.replies || []).forEach(r => flatList.push(r));
+    });
+    (board.threads || []).forEach(t => {
+      flatList.push(t);
+      (t.replies || []).forEach(r => flatList.push(r));
+    });
+
+    if (flatList.length === 0) {
+      container.innerHTML = `<div class="note">投稿はまだありません。</div>`;
+      return;
+    }
+
+    container.innerHTML = flatList.map(p => {
+      const isHidden = (p.status !== '表示');
+      const prefix = p.parentId ? '↳ [返信] ' : (p.title ? `【${escapeHtml(p.title)}】 ` : '');
+      return `
+        <div class="mod-item ${isHidden ? 'mod-hidden' : ''}">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="font-size:0.78rem; color:#fbd38d; font-weight:bold;">${escapeHtml(p.displayName)}</div>
+            <button class="btn-small" onclick="toggleBoardPostVis('${escapeHtml(p.id)}')">${isHidden ? '再表示する' : '非表示にする'}</button>
+          </div>
+          <div style="font-size:0.72rem; color:#a0aec0;">${escapeHtml(p.createdAt)}（現在：${escapeHtml(p.status)}）</div>
+          <div style="font-size:0.84rem; margin-top:4px; white-space:pre-wrap;">${prefix}${escapeHtml(p.body)}</div>
+        </div>
+      `;
+    }).join('');
   }
 
   function showToast(text) {
@@ -286,12 +591,107 @@
     }
   }
 
+  async function setReceptionStatus(status) {
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
+    if (!confirm(`受付ステータスを「${status}」に変更しますか？`)) return;
+
+    const data = await postAdmin({ action: 'adminSetReceptionStatus', passwordHash: hash, status: status });
+    if (data.success) {
+      renderDashboard(data.dashboard);
+      showToast(data.message);
+    } else {
+      alert(data.message);
+    }
+  }
+
   async function toggleFlag(flagKey) {
     const hash = sessionStorage.getItem(SESSION_HASH_KEY);
     if (!hash) return;
     if (!confirm(`「${flagKey}」の公開状態を切り替えますか？`)) return;
 
     const data = await postAdmin({ action: 'adminToggleFlag', passwordHash: hash, flagKey: flagKey });
+    if (data.success) {
+      renderDashboard(data.dashboard);
+      showToast(data.message);
+    } else {
+      alert(data.message);
+    }
+  }
+
+  async function downloadWktCsv(mode) {
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
+
+    try {
+      const data = await postAdmin({ action: 'adminExportCsv', passwordHash: hash, mode: mode });
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+      if (data.rowCount === 0) {
+        alert('出力対象のデータがありません。');
+        return;
+      }
+
+      const blob = new Blob(['\uFEFF' + data.csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`${data.rowCount}件のWKT形式CSV（${data.fileName}）をダウンロードしました。`);
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  async function submitAdminAnnouncement() {
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
+
+    const title = document.getElementById('adminBoardTitle').value.trim();
+    const body = document.getElementById('adminBoardBody').value.trim();
+    if (!title || !body) {
+      alert('お知らせのタイトルと本文を入力してください。');
+      return;
+    }
+
+    const btn = document.getElementById('adminPostBoardBtn');
+    btn.disabled = true;
+    btn.innerText = '投稿中...';
+
+    try {
+      const data = await postAdmin({
+        action: 'adminPostBoard',
+        passwordHash: hash,
+        title: title,
+        body: body
+      });
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+      document.getElementById('adminBoardTitle').value = '';
+      document.getElementById('adminBoardBody').value = '';
+      renderDashboard(data.dashboard);
+      showToast(data.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = '運営お知らせを投稿する';
+    }
+  }
+
+  async function toggleBoardPostVis(postId) {
+    const hash = sessionStorage.getItem(SESSION_HASH_KEY);
+    if (!hash) return;
+    if (!confirm('この投稿の表示／非表示を切り替えますか？')) return;
+
+    const data = await postAdmin({ action: 'adminToggleBoardPost', passwordHash: hash, postId: postId });
     if (data.success) {
       renderDashboard(data.dashboard);
       showToast(data.message);
@@ -326,9 +726,8 @@
     if (!hash) return;
 
     const count = document.getElementById('archRowCount').innerText;
-    const sheetName = document.getElementById('archSheetName').innerText;
 
-    if (!confirm(`【最終確認】\n現在の申込データ（${count}件）をアーカイブ用スプレッドシートに「${sheetName}」として保存し、現役の申込一覧を空にします。\n\n実行してよろしいですか？`)) {
+    if (!confirm(`【最終確認】\n現在の申込データ（${count}件）および掲示板データをアーカイブ用スプレッドシートへ保存し、現役シートを空にします。\n\n実行してよろしいですか？`)) {
       return;
     }
 
