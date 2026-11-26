@@ -49,6 +49,12 @@
     .stat-num { font-size: 1.3rem; font-weight: bold; color: #ff9800; }
     .highlight-card { background: #1f2937; border: 1px solid #ff9800; padding: 12px; border-radius: 8px; margin-bottom: 8px; }
 
+    /* マップ2種表示カード */
+    .map-subcard { background: #1f2937; border: 1px solid #4a5568; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .map-subcard:last-child { margin-bottom: 0; }
+    .map-subcard-title { font-weight: bold; font-size: 0.94rem; margin-bottom: 8px; color: #fbd38d; }
+    .map-preview-img { width: 100%; height: auto; border-radius: 6px; border: 1px solid #4a5568; margin-bottom: 8px; display: block; }
+
     /* スレッド掲示板スタイル */
     .pin-card { background: #2b2118; border: 1px solid #ff9800; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
     .thread-card { background: #1f2937; border: 1px solid #4a5568; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
@@ -392,6 +398,27 @@
     return false;
   }
 
+  function buildMapSubCardHtml(title, url, btnLabel, isPrimaryBtn) {
+    const cleanUrl = String(url || '').trim();
+    if (!cleanUrl) return '';
+
+    let previewImgHtml = '';
+    const driveMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (driveMatch && driveMatch[1]) {
+      const imgSrc = 'https://lh3.googleusercontent.com/d/' + encodeURIComponent(driveMatch[1]);
+      previewImgHtml = `<img src="${imgSrc}" alt="${escapeHtml(title)}" class="map-preview-img" onerror="this.style.display='none'">`;
+    }
+
+    const btnClass = isPrimaryBtn ? 'btn' : 'btn btn-sub';
+    return `
+      <div class="map-subcard">
+        <div class="map-subcard-title">${escapeHtml(title)}</div>
+        ${previewImgHtml}
+        <a href="${escapeHtml(cleanUrl)}" target="_blank" rel="noopener" class="${btnClass}">${escapeHtml(btnLabel)}</a>
+      </div>
+    `;
+  }
+
   function renderMyPage(data, isFirstRegister) {
     currentPersonalUrl = data.user.personalUrl;
     currentUserData = data.user;
@@ -473,9 +500,13 @@
       document.getElementById('menu5').innerHTML = `<div style="color:#fbd38d;">※参加締切後にグループと準備するお菓子の数を計算して公開します。</div>`;
     }
 
-    // 6. マップの確認
-    if (data.config.isMapPublished) {
-      document.getElementById('menu6').innerHTML = `<a href="${escapeHtml(data.config.mapUrl)}" target="_blank" class="btn">スポットマップを開く</a>`;
+    // 6. マップの確認（散策経路の地図・お菓子スポットの地図の2種表示）
+    const routeUrl = String(data.config.mapUrl || '').trim();
+    const spotUrl = String(data.config.spotMapUrl || '').trim();
+    if (data.config.isMapPublished && (routeUrl || spotUrl)) {
+      const routeCard = buildMapSubCardHtml('🚶 散策経路の地図', routeUrl, '散策経路の地図を開く', false);
+      const spotCard = buildMapSubCardHtml('🍬 お菓子スポットの地図', spotUrl, 'お菓子スポットの地図を拡大して見る', true);
+      document.getElementById('menu6').innerHTML = routeCard + spotCard;
     } else {
       document.getElementById('menu6').innerHTML = `<div style="color:#fbd38d;">※スポット確定後にマップを公開します。</div>`;
     }
