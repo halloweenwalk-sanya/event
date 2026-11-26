@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>お菓子スポット地図作成・登録 | 山谷ハロウィンウォーク</title>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+
+  <!-- html2canvas (地図PNG出力用) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      --primary: #ea580c;
+      --primary-dark: #c2410c;
+      --secondary: #1e293b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --info-bg: #e0f2fe;
+      --info-text: #075985;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 52px;
+    }
+
+    header {
+      background: var(--secondary);
+      color: #fff;
+      padding: 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-top {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
+    .back-link {
+      font-size: 0.78rem;
+      color: #fdba74;
+      text-decoration: none;
+      border: 1px solid rgba(253, 186, 116, 0.5);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+
+    .banner {
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    .banner.show {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .banner.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .banner.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .banner.info { background: var(--info-bg); color: var(--info-text); border: 1px solid #7dd3fc; }
+
+    .banner-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: inherit;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .step-title {
+      font-size: 1rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.74rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 800;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 10px 14px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-secondary { background: var(--secondary); border-color: var(--secondary); color: #fff; }
+    .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
+    .btn-danger { background: #fff; border-color: #fca5a5; color: var(--danger); }
+    .btn-sm { padding: 6px 10px; font-size: 0.78rem; }
+    .btn-xs { padding: 4px 7px; font-size: 0.74rem; }
+    .btn-block { width: 100%; }
+    .btn-active-toggle { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+
+    .sub-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .sub-tab-btn {
+      padding: 8px 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .sub-tab-btn.active {
+      background: var(--secondary);
+      border-color: var(--secondary);
+      color: #fff;
+    }
+
+    .form-group { margin-bottom: 12px; }
+    .form-label { display: block; font-size: 0.84rem; font-weight: 700; margin-bottom: 4px; }
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      font-family: inherit;
+    }
+    .form-hint { font-size: 0.76rem; color: var(--text-muted); margin-top: 4px; }
+
+    .map-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .map-toolbar select {
+      padding: 6px 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    #map-capture-area {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      background: #e2e8f0;
+    }
+
+    #map {
+      width: 100%;
+      height: 55vh;
+      min-height: 360px;
+      max-height: 620px;
+      z-index: 1;
+    }
+
+    .map-caption-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+    }
+
+    .map-legend-box {
+      background: #ffffff;
+      padding: 10px 12px;
+      border-top: 1px solid #cbd5e1;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+      gap: 5px 10px;
+      font-size: 0.76rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .legend-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .custom-pin-wrapper { background: transparent; border: none; }
+    .numbered-pin {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #ea580c;
+      color: #ffffff;
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th,
