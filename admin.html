@@ -40,6 +40,10 @@
     .badge-on { background: #2f855a; color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
     .badge-off { background: #4a5568; color: #cbd5e0; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
 
+    .map-status-box { background: #1f2937; border: 1px solid #4a5568; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 0.83rem; }
+    .map-status-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; }
+    .map-status-row a { color: #63b3ed; text-decoration: underline; font-weight: bold; }
+
     .toast { background: #22543d; border: 1px solid #48bb78; color: #c6f6d5; padding: 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 14px; display: none; }
     .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 8px; }
     .danger-zone { border: 1px solid #c53030; background: #1f2937; padding: 14px; border-radius: 8px; margin-top: 8px; }
@@ -190,14 +194,31 @@
       </div>
     </div>
 
-    <!-- 3. 地図CSV出力・データメンテナンス -->
+    <!-- 3. お菓子スポット地図作成・データメンテナンス -->
     <div class="card">
-      <h2>３．地図CSV出力・データメンテナンス</h2>
-      <div class="note">Googleマイマップ取込用のWKT形式CSV（WKT / 名前[A連番] / 説明[番地]）を端末へ直接ダウンロードします。</div>
-      <button class="btn btn-blue" onclick="downloadWktCsv('spots')">📍 スポット協力世帯のみCSV出力（WKT形式）</button>
-      <button class="btn btn-sub" onclick="downloadWktCsv('all')">🏘️ 全参加世帯CSV出力（欠席除く・WKT形式）</button>
-      <button id="geoBtn" class="btn btn-sub" onclick="runFillGeocodes()">未取得の緯度・経度を一括取得する</button>
-      <a id="openSheetLink" href="#" target="_blank" class="btn btn-green">管理スプレッドシートを開く</a>
+      <h2>３．お菓子スポット地図作成・データ管理</h2>
+      <div class="note">スマホだけで住所リストからお菓子スポット地図を作成し、Googleドライブ保存＆スプレッドシートへ自動登録できます。</div>
+      <a href="./map.html" class="btn">🍬 お菓子スポット地図を作成・登録する</a>
+
+      <div class="map-status-box">
+        <div style="font-weight:bold; color:#fbd38d; margin-bottom:4px;">🗺️ 現在の公開マップURL登録状況</div>
+        <div class="map-status-row">
+          <span>🍬 お菓子スポット地図：</span>
+          <span id="dashSpotMapStatus">未登録</span>
+        </div>
+        <div class="map-status-row">
+          <span>🚶 散策経路地図（固定）：</span>
+          <span id="dashRouteMapStatus">未設定</span>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #4a5568; padding-top:12px; margin-top:4px;">
+        <div class="note">WKT形式CSV（WKT / 名前[A連番] / 説明[番地]）出力・座標一括取得</div>
+        <button class="btn btn-blue" onclick="downloadWktCsv('spots')">📍 スポット協力世帯のみCSV出力（WKT形式）</button>
+        <button class="btn btn-sub" onclick="downloadWktCsv('all')">🏘️ 全参加世帯CSV出力（欠席除く・WKT形式）</button>
+        <button id="geoBtn" class="btn btn-sub" onclick="runFillGeocodes()">未取得の緯度・経度を一括取得する</button>
+        <a id="openSheetLink" href="#" target="_blank" class="btn btn-green">管理スプレッドシートを開く</a>
+      </div>
     </div>
 
     <!-- 4. 掲示板管理（運営お知らせ投稿・モデレーション） -->
@@ -248,9 +269,20 @@
   const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw_f8vuCGQwmsg8N9CcItGBMe1YVWSkhCP5ubdoK8CM4xGxx8yk3RAgIJDBGNu4vI4C/exec';
   const ADMIN_HASH_SALT = 'hw_sanya_admin_salt_2027';
   const SESSION_HASH_KEY = 'hw_sanya_admin_hash_v1';
+  const MAP_SHARED_HASH_KEY = 'hw_admin_hash';
   const DEVICE_TOKEN_KEY = 'hw_sanya_admin_device_v1';
 
   let pendingLoginHash = '';
+
+  function syncAdminSessionHash(hash) {
+    if (hash) {
+      sessionStorage.setItem(SESSION_HASH_KEY, hash);
+      sessionStorage.setItem(MAP_SHARED_HASH_KEY, hash);
+    } else {
+      sessionStorage.removeItem(SESSION_HASH_KEY);
+      sessionStorage.removeItem(MAP_SHARED_HASH_KEY);
+    }
+  }
 
   window.onload = async function() {
     try {
@@ -260,7 +292,7 @@
         document.getElementById('loginEventName').innerText = status.eventName + ' 管理者専用';
 
         if (status.needsSetup) {
-          sessionStorage.removeItem(SESSION_HASH_KEY);
+          syncAdminSessionHash('');
           showSection('setupSection');
           return;
         }
@@ -271,6 +303,7 @@
       if (savedHash) {
         const data = await postAdmin({ action: 'adminLogin', passwordHash: savedHash, deviceToken: deviceToken });
         if (data.success && !data.require2FA) {
+          syncAdminSessionHash(savedHash);
           renderDashboard(data.dashboard);
           showSection('dashboardSection');
           return;
@@ -375,7 +408,7 @@
         return;
       }
 
-      sessionStorage.setItem(SESSION_HASH_KEY, data.passwordHash);
+      syncAdminSessionHash(data.passwordHash);
       if (data.deviceToken) localStorage.setItem(DEVICE_TOKEN_KEY, data.deviceToken);
       renderDashboard(data.dashboard);
       showSection('dashboardSection');
@@ -431,7 +464,7 @@
         return;
       }
 
-      sessionStorage.setItem(SESSION_HASH_KEY, hash);
+      syncAdminSessionHash(hash);
       renderDashboard(data.dashboard);
       showSection('dashboardSection');
     } catch (e) {
@@ -463,7 +496,7 @@
         return;
       }
 
-      sessionStorage.setItem(SESSION_HASH_KEY, pendingLoginHash);
+      syncAdminSessionHash(pendingLoginHash);
       if (data.deviceToken) localStorage.setItem(DEVICE_TOKEN_KEY, data.deviceToken);
       renderDashboard(data.dashboard);
       showSection('dashboardSection');
@@ -515,6 +548,16 @@
     const bBoard = document.getElementById('badgeBoard');
     bBoard.innerText = d.isBoardPublished ? 'ON（公開中）' : 'OFF';
     bBoard.className = d.isBoardPublished ? 'badge-on' : 'badge-off';
+
+    // マップURL登録状況
+    const spotMapEl = document.getElementById('dashSpotMapStatus');
+    const routeMapEl = document.getElementById('dashRouteMapStatus');
+    spotMapEl.innerHTML = d.spotMapUrl
+      ? `<a href="${escapeHtml(d.spotMapUrl)}" target="_blank" rel="noopener">登録済み（確認）</a>`
+      : '<span style="color:#a0aec0;">未登録</span>';
+    routeMapEl.innerHTML = d.mapUrl
+      ? `<a href="${escapeHtml(d.mapUrl)}" target="_blank" rel="noopener">設定済み（確認）</a>`
+      : '<span style="color:#a0aec0;">未設定</span>';
 
     document.getElementById('openSheetLink').href = d.sheetUrl;
     document.getElementById('archRowCount').innerText = d.totalRows;
@@ -783,7 +826,7 @@
         return;
       }
 
-      sessionStorage.setItem(SESSION_HASH_KEY, data.newPasswordHash);
+      syncAdminSessionHash(data.newPasswordHash);
       document.getElementById('newPass1').value = '';
       document.getElementById('newPass2').value = '';
       document.getElementById('passChangeWrap').style.display = 'none';
@@ -797,7 +840,7 @@
   }
 
   function adminLogout() {
-    sessionStorage.removeItem(SESSION_HASH_KEY);
+    syncAdminSessionHash('');
     location.reload();
   }
 </script>
