@@ -307,4 +307,808 @@
 
     .table-wrap { overflow-x: auto; margin-top: 10px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    th,
+    th, td { padding: 7px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { background: #f1f5f9; font-weight: 700; white-space: nowrap; }
+
+    .preview-result-box {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border: 2px dashed #94a3b8;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+    }
+
+    .preview-result-box.show { display: block; }
+
+    .preview-result-box img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .publish-done-box {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      display: none;
+    }
+
+    .publish-done-box.show { display: block; }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+    }
+    .loading-overlay.show { display: flex; }
+    .loading-box {
+      background: var(--secondary);
+      padding: 18px 24px;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-box" id="loadingText">処理中...</div>
+  </div>
+
+  <header>
+    <div class="header-top">
+      <div class="app-title">🍬 お菓子スポット地図作成・登録</div>
+      <a href="./admin.html" class="back-link">← 管理画面へ戻る</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="globalBanner" class="banner">
+      <span id="globalBannerText"></span>
+      <button type="button" class="banner-close" onclick="hideBanner()">×</button>
+    </div>
+
+    <!-- ==========================================
+         STEP 1: お菓子スポットの住所リストを登録
+         ========================================== -->
+    <section class="card">
+      <div class="step-header">
+        <div class="step-title"><span class="step-badge">STEP 1</span> お菓子スポット住所リストを登録</div>
+        <span style="font-size:0.8rem; font-weight:700; color:var(--primary);" id="pointCountLabel">現在 0 件</span>
+      </div>
+
+      <div class="sub-tabs">
+        <button type="button" class="sub-tab-btn active" id="tabBulkBtn" onclick="switchInputTab('bulk')">📋 住所リスト一括登録</button>
+        <button type="button" class="sub-tab-btn" id="tabSingleBtn" onclick="switchInputTab('single')">➕ 1件ずつ追加</button>
+        <button type="button" class="sub-tab-btn" id="tabSyncBtn" onclick="switchInputTab('sync')">🎃 申込一覧から読込</button>
+      </div>
+
+      <!-- 一括住所リスト登録 -->
+      <div id="inputBulkBox">
+        <div class="form-group">
+          <label class="form-label" for="bulkAddressInput">お菓子スポットの住所（番地）を改行区切りで入力</label>
+          <textarea id="bulkAddressInput" class="form-textarea" rows="5" placeholder="6004-8&#10;6002-11&#10;6004-9&#10;6004-10"></textarea>
+          <div class="form-hint">
+            ※「6004-8」のような番地のみでOKです（自動で「神奈川県大和市下鶴間」を補完して地図にピンを立てます）。<br>
+            ※カンマ・タブ区切りで <code>6004-8, 6004-8（タナカ）, スポットA</code> のように表示名や備考も付けられます。
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" onclick="registerAddressList()">📍 住所リストを登録して地図に表示</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="clearAllPoints()">全クリア</button>
+        </div>
+      </div>
+
+      <!-- 1件ずつ追加 -->
+      <div id="inputSingleBox" style="display:none;">
+        <div class="form-group">
+          <label class="form-label" for="singleAddressInput">住所（番地）または緯度経度 *</label>
+          <input type="text" id="singleAddressInput" class="form-input" placeholder="例: 6004-10">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="singleNameInput">地図上の表示名（空欄なら番地をそのまま表示）</label>
+          <input type="text" id="singleNameInput" class="form-input" placeholder="例: 6004-10（せんだ）">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="singleNoteInput">備考（任意）</label>
+          <input type="text" id="singleNoteInput" class="form-input" placeholder="例: カボチャ飾りあり">
+        </div>
+        <button type="button" class="btn btn-primary" onclick="registerSingleAddress()">➕ 地図に追加</button>
+      </div>
+
+      <!-- 申込一覧から直接読込 -->
+      <div id="inputSyncBox" style="display:none;">
+        <p class="form-hint" style="margin-top:0; margin-bottom:10px;">
+          スプレッドシートの「申込一覧」から、お菓子スポット協力世帯の住所を直接読み込みます。
+        </p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" onclick="importFromSheet('spot')">🎃 お菓子スポット世帯のみ読込</button>
+          <button type="button" class="btn" onclick="importFromSheet('all')">👥 全参加世帯（欠席除く）読込</button>
+        </div>
+      </div>
+
+      <!-- 登録済み地点リスト（番号並び替え・削除対応） -->
+      <div class="table-wrap" id="pointsTableWrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>番号</th>
+              <th>表示名</th>
+              <th>備考</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="pointsTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         STEP 2: お菓子スポット地図の表示・確認
+         ========================================== -->
+    <section class="card" id="mapSectionCard">
+      <div class="step-header">
+        <div class="step-title"><span class="step-badge">STEP 2</span> 地図の表示・位置確認</div>
+        <button type="button" class="btn btn-sm" onclick="fitAllPins()">🔍 全体表示</button>
+      </div>
+
+      <div class="map-toolbar">
+        <select id="tileSelect" onchange="changeTileLayer(this.value)" aria-label="背景地図">
+          <option value="gsi_pale" selected>国土地理院 淡色地図（おすすめ）</option>
+          <option value="gsi_std">国土地理院 標準地図</option>
+          <option value="osm">OpenStreetMap</option>
+        </select>
+        <button type="button" class="btn btn-sm" id="pickModeBtn" onclick="togglePickMode()">🎯 地図タップでピン追加: OFF</button>
+      </div>
+
+      <div id="pickHintBar" style="display:none; background:#fef3c7; color:#92400e; padding:8px 10px; border-radius:7px; font-size:0.8rem; margin-bottom:8px;">
+        👆 地図上のスポット位置をタップすると、その場所に番号ピンを追加できます。
+      </div>
+
+      <!-- 画像出力対象エリア -->
+      <div id="map-capture-area">
+        <div class="map-caption-bar">
+          <span id="mapBannerTitle">山谷ハロウィンウォーク お菓子スポット地図</span>
+          <span id="mapBannerCount">全0ヶ所</span>
+        </div>
+        <div id="map"></div>
+        <div id="mapLegendBox" class="map-legend-box" style="display:none;"></div>
+      </div>
+      <p class="form-hint">※オレンジ点線枠（下鶴間6000番周辺）内の住所・地点のみ登録されます。</p>
+    </section>
+
+    <!-- ==========================================
+         STEP 3: 出力して結果を確認
+         ========================================== -->
+    <section class="card">
+      <div class="step-header">
+        <div class="step-title"><span class="step-badge">STEP 3</span> 出力して結果を確認</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="mapDisplayTitleInput">地図のタイトル（画像上部に表示されます）</label>
+        <input type="text" id="mapDisplayTitleInput" class="form-input" value="山谷ハロウィンウォーク お菓子スポット地図" oninput="updateMapCaption()">
+      </div>
+
+      <button type="button" class="btn btn-secondary btn-block" onclick="renderPreviewImage()">
+        🖼️ 地図を出力して結果を確認する
+      </button>
+
+      <!-- 出力結果のプレビュー表示エリア -->
+      <div id="previewResultBox" class="preview-result-box">
+        <div style="font-size:0.84rem; font-weight:700; color:var(--secondary); margin-bottom:8px;">
+          ✅ 出力結果プレビュー（この画像がドライブに保存されます）
+        </div>
+        <img id="previewImageEl" src="" alt="出力されたお菓子スポット地図のプレビュー">
+        <div style="margin-top:10px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+          <button type="button" class="btn btn-sm" onclick="downloadPreviewPng()">📥 スマホ端末にも画像を保存</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         STEP 4: Googleドライブに出力＆スプレッドシートURL登録
+         ========================================== -->
+    <section class="card">
+      <div class="step-header">
+        <div class="step-title"><span class="step-badge">STEP 4</span> ドライブ出力 ＆ スプレッドシート登録</div>
+      </div>
+
+      <p class="form-hint" style="margin-top:0; margin-bottom:12px;">
+        出力した「お菓子スポット地図」をGoogleドライブへ保存し、スプレッドシートの<strong>「お菓子スポットマップURL」</strong>に自動登録します。
+      </p>
+
+      <div class="form-group" id="adminPassGroup">
+        <label class="form-label" for="adminPassInput">管理者パスワード（管理画面から移動した場合は自動入力済み）</label>
+        <input type="password" id="adminPassInput" class="form-input" placeholder="管理者パスワードを入力">
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block" onclick="publishMapToDriveAndSheet()">
+        ☁️ Googleドライブに出力してスプレッドシートへ登録
+      </button>
+
+      <!-- 登録完了結果 -->
+      <div id="publishDoneBox" class="publish-done-box">
+        <div style="font-weight:800; color:#166534; margin-bottom:4px;" id="publishDoneTitle">✅ 登録が完了しました！</div>
+        <div id="publishDoneDetail" style="margin-bottom:8px;"></div>
+        <a id="publishDoneLink" href="#" target="_blank" rel="noopener" class="btn btn-success btn-sm">🔗 ドライブ上の地図画像を開く</a>
+      </div>
+
+      <!-- 現在スプレッドシートに登録済みのURL状況 -->
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); font-size:0.8rem; color:var(--text-muted);">
+        <div style="font-weight:700; color:var(--text); margin-bottom:4px;">📋 現在のスプレッドシート登録状況：</div>
+        <div>・お菓子スポットの地図：<span id="currentSpotUrlStatus">読み込み中...</span></div>
+        <div>・散策経路の地図（固定）：<span id="currentRouteUrlStatus">読み込み中...</span></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ==========================================
+    // GAS API エンドポイント & ソルト定数（Common.gs と一致）
+    // ==========================================
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw_f8vuCGQwmsg8N9CcItGBMe1YVWSkhCP5ubdoK8CM4xGxx8yk3RAgIJDBGNu4vI4C/exec';
+    const ADMIN_HASH_SALT = 'hw_sanya_admin_salt_2027';
+
+    let AREA_CONFIG = {
+      AREA_NAME: '神奈川県大和市 下鶴間6000番周辺',
+      MIN_LAT: 35.4950,
+      MAX_LAT: 35.5150,
+      MIN_LNG: 139.4550,
+      MAX_LNG: 139.4800,
+      CENTER_LAT: 35.5050,
+      CENTER_LNG: 139.4675,
+      DEFAULT_ZOOM: 16,
+      MIN_ZOOM: 14,
+      MAX_ZOOM: 18,
+      MAX_POINTS: 50
+    };
+
+    let points = [];
+    let pickMode = false;
+    let generatedImageBase64 = '';
+    let cachedPasswordHash = '';
+
+    // Leaflet関連
+    let map = null;
+    let tileLayers = {};
+    let currentTileLayer = null;
+    let markersLayer = null;
+
+    // ==========================================
+    // 初期化
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', async function() {
+      // admin.html からの認証ハッシュ引き継ぎ確認
+      const savedHash =
+        sessionStorage.getItem('hw_admin_hash') ||
+        sessionStorage.getItem('hww_admin_hash') ||
+        localStorage.getItem('hw_admin_hash') ||
+        '';
+
+      if (/^[a-f0-9]{64}$/i.test(savedHash)) {
+        cachedPasswordHash = savedHash.toLowerCase();
+        document.getElementById('adminPassInput').value = '********';
+        document.getElementById('adminPassGroup').style.display = 'none';
+      }
+
+      initLeafletMap();
+      updateAllViews();
+      await fetchInitialMapConfig();
+    });
+
+    async function callGasApi(action, payload = {}) {
+      try {
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(Object.assign({ action: action }, payload))
+        });
+        return await res.json();
+      } catch (err) {
+        return { success: false, message: '通信エラー: ' + err.message };
+      }
+    }
+
+    async function fetchInitialMapConfig() {
+      const res = await callGasApi('mapList');
+      if (res && res.success) {
+        if (res.areaConfig) AREA_CONFIG = res.areaConfig;
+        if (res.currentUrls) {
+          updateCurrentUrlStatusUI(res.currentUrls.routeMapUrl, res.currentUrls.spotMapUrl);
+        }
+      } else {
+        updateCurrentUrlStatusUI('', '');
+      }
+    }
+
+    function updateCurrentUrlStatusUI(routeUrl, spotUrl) {
+      const spotEl = document.getElementById('currentSpotUrlStatus');
+      const routeEl = document.getElementById('currentRouteUrlStatus');
+      spotEl.innerHTML = spotUrl
+        ? '<a href="' + escapeHtml(spotUrl) + '" target="_blank" rel="noopener">登録済み（確認する）</a>'
+        : '未登録';
+      routeEl.innerHTML = routeUrl
+        ? '<a href="' + escapeHtml(routeUrl) + '" target="_blank" rel="noopener">固定URL設定済み（確認する）</a>'
+        : '未設定（スプレッドシートのconfigに設定）';
+    }
+
+    function initLeafletMap() {
+      const southWest = L.latLng(AREA_CONFIG.MIN_LAT, AREA_CONFIG.MIN_LNG);
+      const northEast = L.latLng(AREA_CONFIG.MAX_LAT, AREA_CONFIG.MAX_LNG);
+      const areaBounds = L.latLngBounds(southWest, northEast);
+
+      map = L.map('map', {
+        center: [AREA_CONFIG.CENTER_LAT, AREA_CONFIG.CENTER_LNG],
+        zoom: AREA_CONFIG.DEFAULT_ZOOM,
+        minZoom: AREA_CONFIG.MIN_ZOOM,
+        maxZoom: AREA_CONFIG.MAX_ZOOM,
+        maxBounds: areaBounds.pad(0.08),
+        maxBoundsViscosity: 1.0,
+        zoomAnimation: false
+      });
+
+      tileLayers = {
+        gsi_pale: L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+          attribution: '国土地理院',
+          maxZoom: 18,
+          crossOrigin: 'anonymous'
+        }),
+        gsi_std: L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+          attribution: '国土地理院',
+          maxZoom: 18,
+          crossOrigin: 'anonymous'
+        }),
+        osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: 'OpenStreetMap',
+          maxZoom: 19,
+          crossOrigin: 'anonymous'
+        })
+      };
+
+      currentTileLayer = tileLayers.gsi_pale;
+      currentTileLayer.addTo(map);
+
+      L.rectangle(areaBounds, {
+        color: '#ea580c',
+        weight: 2,
+        dashArray: '6, 6',
+        fill: false,
+        interactive: false
+      }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+
+      map.on('click', function(e) {
+        if (!pickMode) return;
+        const lat = Number(e.latlng.lat.toFixed(6));
+        const lng = Number(e.latlng.lng.toFixed(6));
+
+        if (lat < AREA_CONFIG.MIN_LAT || lat > AREA_CONFIG.MAX_LAT || lng < AREA_CONFIG.MIN_LNG || lng > AREA_CONFIG.MAX_LNG) {
+          showBanner('オレンジの枠内（下鶴間6000番周辺）をタップしてください。', 'error');
+          return;
+        }
+        if (points.length >= AREA_CONFIG.MAX_POINTS) {
+          showBanner('最大50件まで登録できます。', 'error');
+          return;
+        }
+
+        const label = prompt('スポット ' + (points.length + 1) + ' の表示名を入力してください（例: 6004-10）：');
+        if (label === null) return;
+
+        points.push({
+          lat: lat,
+          lng: lng,
+          name: label.trim() || ('スポット' + (points.length + 1)),
+          note: ''
+        });
+        invalidatePreview();
+        updateAllViews();
+      });
+    }
+
+    function changeTileLayer(key) {
+      if (!tileLayers[key]) return;
+      if (currentTileLayer) map.removeLayer(currentTileLayer);
+      currentTileLayer = tileLayers[key];
+      currentTileLayer.addTo(map);
+      invalidatePreview();
+    }
+
+    // ==========================================
+    // STEP 1: 住所リスト登録処理
+    // ==========================================
+    function switchInputTab(tab) {
+      document.getElementById('tabBulkBtn').classList.toggle('active', tab === 'bulk');
+      document.getElementById('tabSingleBtn').classList.toggle('active', tab === 'single');
+      document.getElementById('tabSyncBtn').classList.toggle('active', tab === 'sync');
+      document.getElementById('inputBulkBox').style.display = tab === 'bulk' ? 'block' : 'none';
+      document.getElementById('inputSingleBox').style.display = tab === 'single' ? 'block' : 'none';
+      document.getElementById('inputSyncBox').style.display = tab === 'sync' ? 'block' : 'none';
+    }
+
+    async function registerAddressList() {
+      const raw = document.getElementById('bulkAddressInput').value;
+      if (!raw.trim()) {
+        showBanner('住所のリストを入力してください。', 'error');
+        return;
+      }
+
+      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const items = lines.map(line => {
+        const cols = line.includes('\t')
+          ? line.split('\t').map(c => c.trim())
+          : line.split(',').map(c => c.trim());
+        return {
+          address: cols[0] || '',
+          name: cols[1] || cols[0] || '',
+          note: cols.slice(2).join(' ') || ''
+        };
+      });
+
+      showLoading('住所を地図座標に変換中...');
+      const res = await callGasApi('mapGeocodeList', { items: items });
+      hideLoading();
+
+      if (!res || !res.success) {
+        const errDetail = (res && res.errors && res.errors.length > 0) ? '（' + res.errors.join(' / ') + '）' : '';
+        showBanner(((res && res.message) || '住所の変換に失敗しました。') + errDetail, 'error');
+        return;
+      }
+
+      const remain = AREA_CONFIG.MAX_POINTS - points.length;
+      points = points.concat(res.points.slice(0, remain));
+      document.getElementById('bulkAddressInput').value = '';
+      invalidatePreview();
+      updateAllViews();
+      fitAllPins();
+
+      const warnMsg = (res.errors && res.errors.length > 0) ? ' ※一部エラー: ' + res.errors.join(' / ') : '';
+      showBanner(res.message + warnMsg, (res.errors && res.errors.length > 0) ? 'info' : 'success');
+      document.getElementById('mapSectionCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function registerSingleAddress() {
+      const address = document.getElementById('singleAddressInput').value.trim();
+      const name = document.getElementById('singleNameInput').value.trim();
+      const note = document.getElementById('singleNoteInput').value.trim();
+
+      if (!address) {
+        showBanner('住所（番地）を入力してください。', 'error');
+        return;
+      }
+
+      showLoading('住所を地図座標に変換中...');
+      const res = await callGasApi('mapGeocodeList', {
+        items: [{ address: address, name: name || address, note: note }]
+      });
+      hideLoading();
+
+      if (!res || !res.success || !res.points || res.points.length === 0) {
+        const errDetail = (res && res.errors && res.errors.length > 0) ? res.errors[0] : ((res && res.message) || '変換に失敗しました。');
+        showBanner(errDetail, 'error');
+        return;
+      }
+
+      points.push(res.points[0]);
+      document.getElementById('singleAddressInput').value = '';
+      document.getElementById('singleNameInput').value = '';
+      document.getElementById('singleNoteInput').value = '';
+      invalidatePreview();
+      updateAllViews();
+      fitAllPins();
+      showBanner('「' + res.points[0].name + '」を地図に追加しました。', 'success');
+    }
+
+    async function importFromSheet(target) {
+      const passwordHash = await resolvePasswordHash();
+      if (!passwordHash) return;
+
+      showLoading('申込一覧から住所を読み込み中...');
+      const res = await callGasApi('mapImportParticipants', { passwordHash: passwordHash, target: target });
+      hideLoading();
+
+      if (!res || !res.success) {
+        if (res && res.message && res.message.indexOf('認証') !== -1) {
+          resetStoredPasswordHash();
+        }
+        showBanner((res && res.message) || '読み込みに失敗しました。', 'error');
+        return;
+      }
+
+      const remain = AREA_CONFIG.MAX_POINTS - points.length;
+      points = points.concat(res.points.slice(0, remain));
+      invalidatePreview();
+      updateAllViews();
+      fitAllPins();
+      showBanner(res.message, 'success');
+      document.getElementById('mapSectionCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function movePoint(idx, delta) {
+      const targetIdx = idx + delta;
+      if (targetIdx < 0 || targetIdx >= points.length) return;
+      const tmp = points[idx];
+      points[idx] = points[targetIdx];
+      points[targetIdx] = tmp;
+      invalidatePreview();
+      updateAllViews();
+    }
+
+    function removePoint(idx) {
+      points.splice(idx, 1);
+      invalidatePreview();
+      updateAllViews();
+    }
+
+    function clearAllPoints() {
+      if (points.length === 0) return;
+      if (!confirm('登録中の地点をすべてクリアしますか？')) return;
+      points = [];
+      invalidatePreview();
+      updateAllViews();
+    }
+
+    // ==========================================
+    // STEP 2: 地図描画・凡例・全体ズーム
+    // ==========================================
+    function updateAllViews() {
+      document.getElementById('pointCountLabel').textContent = '現在 ' + points.length + ' 件';
+      document.getElementById('mapBannerCount').textContent = '全' + points.length + 'ヶ所';
+      updateMapCaption();
+      renderMarkers();
+      renderPointsTable();
+      renderLegend();
+    }
+
+    function updateMapCaption() {
+      const title = document.getElementById('mapDisplayTitleInput').value.trim() || '山谷ハロウィンウォーク お菓子スポット地図';
+      document.getElementById('mapBannerTitle').textContent = title;
+    }
+
+    function togglePickMode() {
+      pickMode = !pickMode;
+      const btn = document.getElementById('pickModeBtn');
+      btn.textContent = '🎯 地図タップでピン追加: ' + (pickMode ? 'ON' : 'OFF');
+      btn.classList.toggle('btn-active-toggle', pickMode);
+      document.getElementById('pickHintBar').style.display = pickMode ? 'block' : 'none';
+    }
+
+    function renderMarkers() {
+      if (!markersLayer) return;
+      markersLayer.clearLayers();
+
+      points.forEach((pt, idx) => {
+        const num = idx + 1;
+        const icon = L.divIcon({
+          className: 'custom-pin-wrapper',
+          html: '<div class="numbered-pin">' + num + '</div>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+          popupAnchor: [0, -14]
+        });
+
+        const popupHtml = '<strong>No.' + num + ' ' + escapeHtml(pt.name) + '</strong>' +
+          (pt.note ? '<br><span style="font-size:12px;">' + escapeHtml(pt.note) + '</span>' : '');
+
+        L.marker([pt.lat, pt.lng], { icon: icon }).bindPopup(popupHtml).addTo(markersLayer);
+      });
+    }
+
+    function renderLegend() {
+      const box = document.getElementById('mapLegendBox');
+      if (points.length === 0) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+      box.style.display = 'grid';
+      box.innerHTML = points.map((pt, idx) => {
+        return '<div class="legend-item"><span class="legend-num">' + (idx + 1) + '</span><span>' + escapeHtml(pt.name) + '</span></div>';
+      }).join('');
+    }
+
+    function renderPointsTable() {
+      const wrap = document.getElementById('pointsTableWrap');
+      const tbody = document.getElementById('pointsTbody');
+      if (points.length === 0) {
+        wrap.style.display = 'none';
+        return;
+      }
+      wrap.style.display = 'block';
+      tbody.innerHTML = points.map((pt, idx) => {
+        return '<tr>' +
+          '<td><strong>' + (idx + 1) + '</strong></td>' +
+          '<td>' + escapeHtml(pt.name) + '</td>' +
+          '<td>' + escapeHtml(pt.note || '-') + '</td>' +
+          '<td style="white-space:nowrap;">' +
+            '<button type="button" class="btn btn-xs" onclick="movePoint(' + idx + ', -1)" ' + (idx === 0 ? 'disabled' : '') + '>↑</button> ' +
+            '<button type="button" class="btn btn-xs" onclick="movePoint(' + idx + ', 1)" ' + (idx === points.length - 1 ? 'disabled' : '') + '>↓</button> ' +
+            '<button type="button" class="btn btn-danger btn-xs" onclick="removePoint(' + idx + ')">削除</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function fitAllPins() {
+      if (!map) return;
+      if (points.length === 0) {
+        map.setView([AREA_CONFIG.CENTER_LAT, AREA_CONFIG.CENTER_LNG], AREA_CONFIG.DEFAULT_ZOOM);
+        return;
+      }
+      const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
+      map.fitBounds(bounds, { padding: [36, 36], maxZoom: 17 });
+    }
+
+    // ==========================================
+    // STEP 3: 地図出力＆結果確認（プレビュー生成）
+    // ==========================================
+    function invalidatePreview() {
+      generatedImageBase64 = '';
+      document.getElementById('previewResultBox').classList.remove('show');
+    }
+
+    function renderPreviewImage() {
+      if (points.length === 0) {
+        showBanner('先にSTEP 1で住所を1件以上登録してください。', 'error');
+        return;
+      }
+
+      fitAllPins();
+      showLoading('お菓子スポット地図画像を出力中...');
+
+      setTimeout(() => {
+        const target = document.getElementById('map-capture-area');
+        html2canvas(target, {
+          useCORS: true,
+          allowTaint: false,
+          scale: 1.6,
+          ignoreElements: function(el) {
+            return el.classList && el.classList.contains('leaflet-control-zoom');
+          }
+        }).then(canvas => {
+          hideLoading();
+          generatedImageBase64 = canvas.toDataURL('image/png');
+          document.getElementById('previewImageEl').src = generatedImageBase64;
+          const previewBox = document.getElementById('previewResultBox');
+          previewBox.classList.add('show');
+          previewBox.scrollIntoView({ behavior: 'smooth' });
+          showBanner('地図を出力しました。下のプレビュー画像を確認し、問題なければSTEP 4で登録してください。', 'success');
+        }).catch(err => {
+          hideLoading();
+          showBanner('画像出力に失敗しました: ' + err.message, 'error');
+        });
+      }, 600);
+    }
+
+    function downloadPreviewPng() {
+      if (!generatedImageBase64) return;
+      const a = document.createElement('a');
+      const title = (document.getElementById('mapDisplayTitleInput').value.trim() || 'spot_map').replace(/[\\/:*?"<>|]/g, '_');
+      a.download = title + '.png';
+      a.href = generatedImageBase64;
+      a.click();
+    }
+
+    // ==========================================
+    // STEP 4: Googleドライブ保存＆スプレッドシートURL登録
+    // ==========================================
+    async function resolvePasswordHash() {
+      if (cachedPasswordHash) return cachedPasswordHash;
+      const pass = document.getElementById('adminPassInput').value.trim();
+      if (!pass) {
+        showBanner('管理者パスワードを入力してください。', 'error');
+        document.getElementById('adminPassGroup').style.display = 'block';
+        document.getElementById('adminPassInput').focus();
+        return '';
+      }
+      const hash = await computeSaltedAdminHash(pass);
+      cachedPasswordHash = hash;
+      sessionStorage.setItem('hw_admin_hash', hash);
+      return hash;
+    }
+
+    function resetStoredPasswordHash() {
+      cachedPasswordHash = '';
+      sessionStorage.removeItem('hw_admin_hash');
+      sessionStorage.removeItem('hww_admin_hash');
+      localStorage.removeItem('hw_admin_hash');
+      document.getElementById('adminPassGroup').style.display = 'block';
+      document.getElementById('adminPassInput').value = '';
+    }
+
+    async function publishMapToDriveAndSheet() {
+      if (!generatedImageBase64) {
+        showBanner('先にSTEP 3の「地図を出力して結果を確認する」ボタンを押してください。', 'error');
+        return;
+      }
+
+      const passwordHash = await resolvePasswordHash();
+      if (!passwordHash) return;
+
+      const mapTitle = document.getElementById('mapDisplayTitleInput').value.trim();
+
+      if (!confirm('出力した「お菓子スポット地図」をGoogleドライブに保存し、スプレッドシートのURL欄に登録しますか？')) {
+        return;
+      }
+
+      showLoading('Googleドライブへ保存＆スプレッドシート登録中...');
+      const res = await callGasApi('mapPublishToDrive', {
+        passwordHash: passwordHash,
+        mapTitle: mapTitle,
+        imageBase64: generatedImageBase64
+      });
+      hideLoading();
+
+      if (!res || !res.success) {
+        if (res && res.message && res.message.indexOf('認証') !== -1) {
+          resetStoredPasswordHash();
+        }
+        showBanner((res && res.message) || '登録に失敗しました。', 'error');
+        return;
+      }
+
+      const doneBox = document.getElementById('publishDoneBox');
+      document.getElementById('publishDoneTitle').textContent = '✅ ' + res.message;
+      document.getElementById('publishDoneDetail').textContent = '保存ファイル名: ' + res.fileName;
+      document.getElementById('publishDoneLink').href = res.fileUrl;
+      doneBox.classList.add('show');
+
+      showBanner(res.message, 'success');
+      fetchInitialMapConfig();
+    }
+
+    // ==========================================
+    // ユーティリティ（Common.gs と同一ソルト計算）
+    // ==========================================
+    async function computeSaltedAdminHash(rawPass) {
+      const raw = `${String(rawPass).trim()}:${ADMIN_HASH_SALT}`;
+      const msgBuffer = new TextEncoder().encode(raw);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function showBanner(msg, type) {
+      const el = document.getElementById('globalBanner');
+      el.className = 'banner show ' + (type || 'info');
+      document.getElementById('globalBannerText').textContent = msg;
+    }
+
+    function hideBanner() {
+      document.getElementById('globalBanner').classList.remove('show');
+    }
+
+    function showLoading(text) {
+      document.getElementById('loadingText').textContent = text || '処理中...';
+      document.getElementById('loadingOverlay').classList.add('show');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('show');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>
