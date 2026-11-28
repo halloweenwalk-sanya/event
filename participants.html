@@ -8,25 +8,24 @@
   <link rel="apple-touch-icon" href="icon.png">
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { background: #1a202c; color: #f7fafc; margin: 0; padding: 16px; line-height: 1.5; padding-bottom: 48px; }
-    .container { max-width: 500px; margin: 0 auto; }
-    .card { background: #2d3748; padding: 20px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.85rem; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
+    body { background: #1a202c; color: #f7fafc; margin: 0; padding: 12px; line-height: 1.45; padding-bottom: 48px; }
+    .container { max-width: 720px; margin: 0 auto; }
+    .card { background: #2d3748; padding: 16px; border-radius: 12px; margin-bottom: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
     .back-link { color: #fbd38d; text-decoration: none; border: 1px solid #718096; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; font-weight: bold; }
 
-    h1 { margin: 0 0 4px; color: #ff9800; font-size: 1.25rem; text-align: center; }
-    .sub-title { text-align: center; font-size: 0.85rem; color: #cbd5e0; margin-bottom: 14px; }
-    h2 { margin: 0 0 12px; color: #fbd38d; font-size: 1.05rem; border-bottom: 1px solid #4a5568; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0 0 4px; color: #ff9800; font-size: 1.2rem; text-align: center; }
+    .sub-title { text-align: center; font-size: 0.82rem; color: #cbd5e0; margin-bottom: 12px; }
+    h2 { margin: 0 0 10px; color: #fbd38d; font-size: 1rem; border-bottom: 1px solid #4a5568; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
 
-    label { display: block; font-size: 0.84rem; font-weight: bold; margin-bottom: 5px; color: #e2e8f0; }
-    input, select { width: 100%; padding: 11px 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 0.95rem; }
-    .note { font-size: 0.8rem; color: #a0aec0; margin-bottom: 10px; }
+    label { display: block; font-size: 0.82rem; font-weight: bold; margin-bottom: 4px; color: #e2e8f0; }
+    input, select { width: 100%; padding: 10px 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 0.92rem; }
+    .note { font-size: 0.78rem; color: #a0aec0; margin-bottom: 8px; }
 
-    .btn { width: 100%; padding: 13px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
+    .btn { width: 100%; padding: 12px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 0.92rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-bottom: 8px; }
     .btn:last-child { margin-bottom: 0; }
     .btn:disabled { background: #718096; cursor: not-allowed; }
     .btn-sub { background: #4a5568; }
-    .btn-small { background: none; border: 1px solid #718096; color: #cbd5e0; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; }
     .btn-row { display: flex; gap: 8px; margin-top: 4px; }
     .btn-row .btn { margin-bottom: 0; }
 
@@ -34,15 +33,127 @@
     .filter-chip { padding: 8px 4px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #cbd5e0; font-size: 0.78rem; font-weight: bold; cursor: pointer; text-align: center; }
     .filter-chip.active { background: #ff7a00; color: #fff; border-color: #ff9800; }
 
-    .p-card { background: #1f2937; border: 1px solid #4a5568; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-    .p-card.editing { border-color: #ff9800; background: #262f3f; }
-    .p-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #374151; }
-    .p-addr { font-size: 1.02rem; font-weight: bold; color: #fbd38d; }
-    .p-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 0.84rem; color: #e2e8f0; }
-    .p-full { grid-column: 1 / -1; }
-    .p-absent { color: #fc8181; font-weight: bold; }
+    /* 編集フォームパネル（選択行の編集用） */
+    .edit-panel {
+      background: #1f2937;
+      border: 2px solid #ff9800;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .edit-panel.show { display: block; }
+    .edit-panel-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #fbd38d;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #374151;
+    }
+    .edit-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 10px;
+    }
 
-    .toast { background: #22543d; border: 1px solid #48bb78; color: #c6f6d5; padding: 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 14px; display: none; }
+    /* 一覧テーブル（1行1世帯・横スクロール＆左列固定対応） */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid #4a5568;
+      border-radius: 8px;
+      background: #1f2937;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    thead th {
+      background: #111827;
+      color: #fbd38d;
+      font-weight: bold;
+      text-align: left;
+      padding: 9px 8px;
+      border-bottom: 1px solid #4a5568;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #374151;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: #283548;
+    }
+
+    tbody tr.selected-row {
+      background: #3b2d1f;
+    }
+
+    tbody td {
+      padding: 9px 8px;
+      color: #f7fafc;
+      vertical-align: middle;
+    }
+
+    /* 1列目（住所）を左端固定して横スクロール時も識別しやすくする */
+    th.col-addr, td.col-addr {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: inherit;
+      font-weight: bold;
+      color: #fbd38d;
+      border-right: 1px solid #374151;
+    }
+    thead th.col-addr {
+      background: #111827;
+      z-index: 3;
+    }
+    tbody tr:not(.selected-row) td.col-addr {
+      background: #1f2937;
+    }
+    tbody tr.selected-row td.col-addr {
+      background: #3b2d1f;
+    }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.74rem;
+      font-weight: bold;
+    }
+    .type-both { background: #7c2d12; color: #fed7aa; }
+    .type-walk { background: #14532d; color: #bbf7d0; }
+    .type-spot { background: #1e3a8a; color: #bfdbfe; }
+    .type-absent { background: #7f1d1d; color: #fecaca; }
+
+    .val-muted { color: #9ca3af; }
+    .edit-tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border: 1px solid #718096;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      color: #cbd5e0;
+    }
+
+    .toast { background: #22543d; border: 1px solid #48bb78; color: #c6f6d5; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px; display: none; }
     .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 8px; }
   </style>
 </head>
@@ -70,9 +181,49 @@
   <div id="mainSection" style="display:none;">
     <div class="card">
       <h1 id="pageEventName">参加者ステータス編集</h1>
-      <div class="sub-title">受付期間にかかわらず下記5項目をいつでも編集できます</div>
+      <div class="sub-title">行をタップすると内容を編集できます（期間にかかわらず編集可能）</div>
 
-      <input type="text" id="searchInput" placeholder="🔍 番地・グループで検索（例: 6004 / Aグループ）" oninput="renderParticipants()">
+      <!-- 選択中の世帯の編集パネル -->
+      <div id="editPanel" class="edit-panel">
+        <div class="edit-panel-title" id="editPanelTitle">✏️ ステータス編集</div>
+
+        <div class="edit-grid-2">
+          <div>
+            <label for="editAddr">住所（番地）</label>
+            <input type="text" id="editAddr" placeholder="例: 6004-10">
+          </div>
+          <div>
+            <label for="editCandy">準備お菓子数</label>
+            <input type="text" id="editCandy" list="candyPresetList" placeholder="例: 20 / 未定">
+          </div>
+        </div>
+
+        <label for="editType">参加形態</label>
+        <select id="editType">
+          <option value="両方（散策＋スポット協力）">両方（散策＋スポット協力）</option>
+          <option value="散策のみ">散策のみ</option>
+          <option value="スポットのみ">スポットのみ</option>
+          <option value="欠席">欠席</option>
+        </select>
+
+        <div class="edit-grid-2">
+          <div>
+            <label for="editSpot">お菓子スポット</label>
+            <input type="text" id="editSpot" list="groupPresetList" placeholder="例: Aグループ">
+          </div>
+          <div>
+            <label for="editGroup">所属グループ</label>
+            <input type="text" id="editGroup" list="groupPresetList" placeholder="例: Bグループ">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="saveBtn" class="btn" onclick="saveParticipant()">保存する</button>
+          <button type="button" class="btn btn-sub" onclick="cancelEdit()">閉じる</button>
+        </div>
+      </div>
+
+      <input type="text" id="searchInput" placeholder="🔍 住所・グループで検索（例: 6004 / Aグループ）" oninput="renderParticipants()">
 
       <div class="filter-row">
         <button type="button" class="filter-chip active" id="fltAll" onclick="setFilter('all')">すべて</button>
@@ -83,8 +234,9 @@
 
       <h2>
         <span>登録世帯一覧</span>
-        <span style="font-size:0.82rem; color:#ff9800;" id="countLabel">0件</span>
+        <span style="font-size:0.8rem; color:#ff9800;" id="countLabel">0件</span>
       </h2>
+      <div class="note">※行をタップして編集できます（横スクロール可）。</div>
 
       <datalist id="groupPresetList">
         <option value="未定">
@@ -106,7 +258,21 @@
         <option value="30">
       </datalist>
 
-      <div id="participantsContainer"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-addr">住所</th>
+              <th>参加形態</th>
+              <th>お菓子スポット</th>
+              <th>所属グループ</th>
+              <th>準備お菓子数</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="participantsTbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -215,8 +381,33 @@
     return p.token || ('row_' + p.rowNumber);
   }
 
+  function formatTypeBadge(typeStr) {
+    const t = String(typeStr || '');
+    if (t.includes('欠席')) {
+      return '<span class="type-badge type-absent">欠席</span>';
+    }
+    if (t.includes('両方')) {
+      return '<span class="type-badge type-both">両方</span>';
+    }
+    if (t.includes('スポット')) {
+      return '<span class="type-badge type-spot">スポットのみ</span>';
+    }
+    if (t.includes('散策')) {
+      return '<span class="type-badge type-walk">散策のみ</span>';
+    }
+    return escapeHtml(t);
+  }
+
+  function formatCellVal(val) {
+    const v = String(val || '').trim();
+    if (!v || v === '未定' || v === '対象外') {
+      return `<span class="val-muted">${escapeHtml(v || '未定')}</span>`;
+    }
+    return escapeHtml(v);
+  }
+
   function renderParticipants() {
-    const container = document.getElementById('participantsContainer');
+    const tbody = document.getElementById('participantsTbody');
     const kw = String(document.getElementById('searchInput').value || '').trim().toLowerCase();
 
     const list = allParticipants.filter(p => {
@@ -236,83 +427,53 @@
     document.getElementById('countLabel').innerText = `${list.length} / ${allParticipants.length}件`;
 
     if (list.length === 0) {
-      container.innerHTML = `<div class="note" style="text-align:center; padding:20px 0;">該当するデータがありません。</div>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:#a0aec0;">該当するデータがありません。</td></tr>`;
       return;
     }
 
-    const typeChoices = [
-      '両方（散策＋スポット協力）',
-      '散策のみ',
-      'スポットのみ',
-      '欠席'
-    ];
-
-    container.innerHTML = list.map(p => {
+    tbody.innerHTML = list.map(p => {
       const key = getItemKey(p);
-      if (editingKey === key) {
-        const typeOpts = typeChoices.map(t =>
-          `<option value="${escapeHtml(t)}" ${p.type === t ? 'selected' : ''}>${escapeHtml(t)}</option>`
-        ).join('');
-
-        return `
-          <div class="p-card editing">
-            <div class="p-card-top">
-              <span class="p-addr">✏️ 編集中：${escapeHtml(p.address)}</span>
-            </div>
-
-            <label>番地</label>
-            <input type="text" id="editAddr" value="${escapeHtml(p.address)}" placeholder="例: 6004-10">
-
-            <label>参加形態</label>
-            <select id="editType">${typeOpts}</select>
-
-            <label>お菓子スポット</label>
-            <input type="text" id="editSpot" list="groupPresetList" value="${escapeHtml(p.candySpot)}" placeholder="例: Aグループ / 対象外">
-
-            <label>所属グループ</label>
-            <input type="text" id="editGroup" list="groupPresetList" value="${escapeHtml(p.group)}" placeholder="例: Bグループ / 対象外">
-
-            <label>準備お菓子数</label>
-            <input type="text" id="editCandy" list="candyPresetList" value="${escapeHtml(p.candy)}" placeholder="例: 20 / 未定">
-
-            <div class="btn-row">
-              <button id="saveBtn" class="btn" onclick="saveParticipant('${escapeHtml(key)}')">保存する</button>
-              <button class="btn btn-sub" onclick="cancelEdit()">キャンセル</button>
-            </div>
-          </div>
-        `;
-      }
-
-      const isAbsent = String(p.type).includes('欠席');
+      const isSelected = (editingKey === key);
       return `
-        <div class="p-card">
-          <div class="p-card-top">
-            <span class="p-addr">🏠 番地：${escapeHtml(p.address)}</span>
-            <button type="button" class="btn-small" onclick="startEdit('${escapeHtml(key)}')">編集</button>
-          </div>
-          <div class="p-grid">
-            <div class="p-full">参加形態：<strong class="${isAbsent ? 'p-absent' : ''}">${escapeHtml(p.type)}</strong></div>
-            <div>お菓子スポット：<strong>${escapeHtml(p.candySpot)}</strong></div>
-            <div>所属グループ：<strong>${escapeHtml(p.group)}</strong></div>
-            <div class="p-full">準備お菓子数：<strong>${escapeHtml(p.candy)}</strong></div>
-          </div>
-        </div>
+        <tr class="${isSelected ? 'selected-row' : ''}" onclick="startEdit('${escapeHtml(key)}')">
+          <td class="col-addr">${escapeHtml(p.address)}</td>
+          <td>${formatTypeBadge(p.type)}</td>
+          <td>${formatCellVal(p.candySpot)}</td>
+          <td>${formatCellVal(p.group)}</td>
+          <td>${formatCellVal(p.candy)}</td>
+          <td><span class="edit-tag">編集</span></td>
+        </tr>
       `;
     }).join('');
   }
 
   function startEdit(key) {
+    const target = allParticipants.find(p => getItemKey(p) === key);
+    if (!target) return;
+
     editingKey = key;
+    document.getElementById('editPanelTitle').innerText = `✏️ 住所「${target.address}」のステータス編集`;
+    document.getElementById('editAddr').value = target.address || '';
+    document.getElementById('editType').value = target.type || '両方（散策＋スポット協力）';
+    document.getElementById('editSpot').value = target.candySpot || '未定';
+    document.getElementById('editGroup').value = target.group || '未定';
+    document.getElementById('editCandy').value = target.candy || '未定';
+
+    const panel = document.getElementById('editPanel');
+    panel.classList.add('show');
     renderParticipants();
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function cancelEdit() {
     editingKey = '';
+    document.getElementById('editPanel').classList.remove('show');
     renderParticipants();
   }
 
-  async function saveParticipant(key) {
-    const target = allParticipants.find(p => getItemKey(p) === key);
+  async function saveParticipant() {
+    if (!editingKey) return;
+    const target = allParticipants.find(p => getItemKey(p) === editingKey);
     if (!target) return;
 
     const address = document.getElementById('editAddr').value.trim();
@@ -322,7 +483,7 @@
     const candy = document.getElementById('editCandy').value.trim();
 
     if (!address) {
-      alert('番地を入力してください。');
+      alert('住所（番地）を入力してください。');
       return;
     }
 
@@ -345,17 +506,17 @@
 
       if (!data || !data.success) {
         alert((data && data.message) || '保存に失敗しました。');
-        btn.disabled = false;
-        btn.innerText = '保存する';
         return;
       }
 
       editingKey = '';
+      document.getElementById('editPanel').classList.remove('show');
       allParticipants = Array.isArray(data.participants) ? data.participants : [];
       renderParticipants();
       showToast(data.message);
     } catch (e) {
       alert(e.message);
+    } finally {
       btn.disabled = false;
       btn.innerText = '保存する';
     }
