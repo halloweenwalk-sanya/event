@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>参加者ステータス編集 | 山谷ハロウィンウォーク</title>
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { background: #1a202c; color: #f7fafc; margin: 0; padding: 16px; line-height: 1.5; padding-bottom: 48px; }
+    .container { max-width: 500px; margin: 0 auto; }
+    .card { background: #2d3748; padding: 20px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.85rem; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
+    .back-link { color: #fbd38d; text-decoration: none; border: 1px solid #718096; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; font-weight: bold; }
+
+    h1 { margin: 0 0 4px; color: #ff9800; font-size: 1.25rem; text-align: center; }
+    .sub-title { text-align: center; font-size: 0.85rem; color: #cbd5e0; margin-bottom: 14px; }
+    h2 { margin: 0 0 12px; color: #fbd38d; font-size: 1.05rem; border-bottom: 1px solid #4a5568; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+
+    label { display: block; font-size: 0.84rem; font-weight: bold; margin-bottom: 5px; color: #e2e8f0; }
+    input, select { width: 100%; padding: 11px 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #fff; font-size: 0.95rem; }
+    .note { font-size: 0.8rem; color: #a0aec0; margin-bottom: 10px; }
+
+    .btn { width: 100%; padding: 13px; background: #ff7a00; color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
+    .btn:last-child { margin-bottom: 0; }
+    .btn:disabled { background: #718096; cursor: not-allowed; }
+    .btn-sub { background: #4a5568; }
+    .btn-small { background: none; border: 1px solid #718096; color: #cbd5e0; border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; }
+    .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-row .btn { margin-bottom: 0; }
+
+    .filter-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+    .filter-chip { padding: 8px 4px; border-radius: 8px; border: 1px solid #4a5568; background: #1f2937; color: #cbd5e0; font-size: 0.78rem; font-weight: bold; cursor: pointer; text-align: center; }
+    .filter-chip.active { background: #ff7a00; color: #fff; border-color: #ff9800; }
+
+    .p-card { background: #1f2937; border: 1px solid #4a5568; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+    .p-card.editing { border-color: #ff9800; background: #262f3f; }
+    .p-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #374151; }
+    .p-addr { font-size: 1.02rem; font-weight: bold; color: #fbd38d; }
+    .p-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 0.84rem; color: #e2e8f0; }
+    .p-full { grid-column: 1 / -1; }
+    .p-absent { color: #fc8181; font-weight: bold; }
+
+    .toast { background: #22543d; border: 1px solid #48bb78; color: #c6f6d5; padding: 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 14px; display: none; }
+    .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-bar">
+    <span style="color:#fbd38d; font-weight:bold;">👥 参加者ステータス編集</span>
+    <a href="./admin.html" class="back-link">← 管理画面へ戻る</a>
+  </div>
+
+  <div id="toastBox" class="toast"></div>
+
+  <!-- 認証フォーム（直接アクセス時のみ表示） -->
+  <div id="authCard" class="card" style="display:none;">
+    <h1>管理者認証</h1>
+    <div class="sub-title">参加者ステータスの閲覧・編集には管理者パスワードが必要です</div>
+    <label for="adminPassInput">管理者パスワード</label>
+    <input type="password" id="adminPassInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') unlockWithPassword()">
+    <button id="unlockBtn" class="btn" onclick="unlockWithPassword()">認証して一覧を開く</button>
+    <div id="authMsg" class="msg-error"></div>
+  </div>
+
+  <!-- メイン一覧＆編集エリア -->
+  <div id="mainSection" style="display:none;">
+    <div class="card">
+      <h1 id="pageEventName">参加者ステータス編集</h1>
+      <div class="sub-title">受付期間にかかわらず下記5項目をいつでも編集できます</div>
+
+      <input type="text" id="searchInput" placeholder="🔍 番地・グループで検索（例: 6004 / Aグループ）" oninput="renderParticipants()">
+
+      <div class="filter-row">
+        <button type="button" class="filter-chip active" id="fltAll" onclick="setFilter('all')">すべて</button>
+        <button type="button" class="filter-chip" id="fltUndecided" onclick="setFilter('undecided')">未定あり</button>
+        <button type="button" class="filter-chip" id="fltSpot" onclick="setFilter('spot')">スポット</button>
+        <button type="button" class="filter-chip" id="fltAbsent" onclick="setFilter('absent')">欠席</button>
+      </div>
+
+      <h2>
+        <span>登録世帯一覧</span>
+        <span style="font-size:0.82rem; color:#ff9800;" id="countLabel">0件</span>
+      </h2>
+
+      <datalist id="groupPresetList">
+        <option value="未定">
+        <option value="対象外">
+        <option value="Aグループ">
+        <option value="Bグループ">
+        <option value="Cグループ">
+        <option value="Dグループ">
+        <option value="Eグループ">
+      </datalist>
+
+      <datalist id="candyPresetList">
+        <option value="未定">
+        <option value="0">
+        <option value="10">
+        <option value="15">
+        <option value="20">
+        <option value="25">
+        <option value="30">
+      </datalist>
+
+      <div id="participantsContainer"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw_f8vuCGQwmsg8N9CcItGBMe1YVWSkhCP5ubdoK8CM4xGxx8yk3RAgIJDBGNu4vI4C/exec';
+  const ADMIN_HASH_SALT = 'hw_sanya_admin_salt_2027';
+
+  let cachedHash = '';
+  let allParticipants = [];
+  let currentFilter = 'all';
+  let editingKey = '';
+
+  window.onload = async function() {
+    const saved =
+      sessionStorage.getItem('hw_admin_hash') ||
+      sessionStorage.getItem('hw_sanya_admin_hash_v1') ||
+      '';
+
+    if (/^[a-f0-9]{64}$/i.test(saved)) {
+      cachedHash = saved.toLowerCase();
+      const ok = await fetchParticipants();
+      if (ok) return;
+    }
+
+    document.getElementById('authCard').style.display = 'block';
+  };
+
+  async function createAdminHash(pass) {
+    const raw = `${String(pass).trim()}:${ADMIN_HASH_SALT}`;
+    const msgUint8 = new TextEncoder().encode(raw);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function postGas(payload) {
+    const res = await fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error('通信エラー: ' + text.replace(/<[^>]*>/g, '').slice(0, 80));
+    }
+  }
+
+  async function unlockWithPassword() {
+    const pass = document.getElementById('adminPassInput').value.trim();
+    const msg = document.getElementById('authMsg');
+    const btn = document.getElementById('unlockBtn');
+
+    if (!pass) {
+      msg.innerText = 'パスワードを入力してください。';
+      return;
+    }
+
+    btn.disabled = true;
+    msg.innerText = '認証中...';
+
+    try {
+      cachedHash = await createAdminHash(pass);
+      const ok = await fetchParticipants();
+      if (!ok) {
+        cachedHash = '';
+        btn.disabled = false;
+        return;
+      }
+      sessionStorage.setItem('hw_admin_hash', cachedHash);
+      sessionStorage.setItem('hw_sanya_admin_hash_v1', cachedHash);
+    } catch (e) {
+      msg.innerText = e.message;
+      btn.disabled = false;
+    }
+  }
+
+  async function fetchParticipants() {
+    const data = await postGas({ action: 'adminGetParticipants', passwordHash: cachedHash });
+    if (!data || !data.success) {
+      document.getElementById('authMsg').innerText = (data && data.message) || '認証に失敗しました。';
+      return false;
+    }
+
+    document.getElementById('authCard').style.display = 'none';
+    document.getElementById('mainSection').style.display = 'block';
+    if (data.eventName) {
+      document.getElementById('pageEventName').innerText = data.eventName + ' ステータス編集';
+    }
+    allParticipants = Array.isArray(data.participants) ? data.participants : [];
+    renderParticipants();
+    return true;
+  }
+
+  function setFilter(mode) {
+    currentFilter = mode;
+    document.getElementById('fltAll').classList.toggle('active', mode === 'all');
+    document.getElementById('fltUndecided').classList.toggle('active', mode === 'undecided');
+    document.getElementById('fltSpot').classList.toggle('active', mode === 'spot');
+    document.getElementById('fltAbsent').classList.toggle('active', mode === 'absent');
+    renderParticipants();
+  }
+
+  function getItemKey(p) {
+    return p.token || ('row_' + p.rowNumber);
+  }
+
+  function renderParticipants() {
+    const container = document.getElementById('participantsContainer');
+    const kw = String(document.getElementById('searchInput').value || '').trim().toLowerCase();
+
+    const list = allParticipants.filter(p => {
+      if (currentFilter === 'undecided') {
+        if (p.candySpot !== '未定' && p.group !== '未定' && p.candy !== '未定') return false;
+      } else if (currentFilter === 'spot') {
+        if (!String(p.type).includes('両方') && !String(p.type).includes('スポット')) return false;
+      } else if (currentFilter === 'absent') {
+        if (!String(p.type).includes('欠席')) return false;
+      }
+
+      if (!kw) return true;
+      const text = `${p.address} ${p.type} ${p.candySpot} ${p.group} ${p.candy}`.toLowerCase();
+      return text.includes(kw);
+    });
+
+    document.getElementById('countLabel').innerText = `${list.length} / ${allParticipants.length}件`;
+
+    if (list.length === 0) {
+      container.innerHTML = `<div class="note" style="text-align:center; padding:20px 0;">該当するデータがありません。</div>`;
+      return;
+    }
+
+    const typeChoices = [
+      '両方（散策＋スポット協力）',
+      '散策のみ',
+      'スポットのみ',
+      '欠席'
+    ];
+
+    container.innerHTML = list.map(p => {
+      const key = getItemKey(p);
+      if (editingKey === key) {
+        const typeOpts = typeChoices.map(t =>
+          `<option value="${escapeHtml(t)}" ${p.type === t ? 'selected' : ''}>${escapeHtml(t)}</option>`
+        ).join('');
+
+        return `
+          <div class="p-card editing">
+            <div class="p-card-top">
+              <span class="p-addr">✏️ 編集中：${escapeHtml(p.address)}</span>
+            </div>
+
+            <label>番地</label>
+            <input type="text" id="editAddr" value="${escapeHtml(p.address)}" placeholder="例: 6004-10">
+
+            <label>参加形態</label>
+            <select id="editType">${typeOpts}</select>
+
+            <label>お菓子スポット</label>
+            <input type="text" id="editSpot" list="groupPresetList" value="${escapeHtml(p.candySpot)}" placeholder="例: Aグループ / 対象外">
+
+            <label>所属グループ</label>
+            <input type="text" id="editGroup" list="groupPresetList" value="${escapeHtml(p.group)}" placeholder="例: Bグループ / 対象外">
+
+            <label>準備お菓子数</label>
+            <input type="text" id="editCandy" list="candyPresetList" value="${escapeHtml(p.candy)}" placeholder="例: 20 / 未定">
+
+            <div class="btn-row">
+              <button id="saveBtn" class="btn" onclick="saveParticipant('${escapeHtml(key)}')">保存する</button>
+              <button class="btn btn-sub" onclick="cancelEdit()">キャンセル</button>
+            </div>
+          </div>
+        `;
+      }
+
+      const isAbsent = String(p.type).includes('欠席');
+      return `
+        <div class="p-card">
+          <div class="p-card-top">
+            <span class="p-addr">🏠 番地：${escapeHtml(p.address)}</span>
+            <button type="button" class="btn-small" onclick="startEdit('${escapeHtml(key)}')">編集</button>
+          </div>
+          <div class="p-grid">
+            <div class="p-full">参加形態：<strong class="${isAbsent ? 'p-absent' : ''}">${escapeHtml(p.type)}</strong></div>
+            <div>お菓子スポット：<strong>${escapeHtml(p.candySpot)}</strong></div>
+            <div>所属グループ：<strong>${escapeHtml(p.group)}</strong></div>
+            <div class="p-full">準備お菓子数：<strong>${escapeHtml(p.candy)}</strong></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function startEdit(key) {
+    editingKey = key;
+    renderParticipants();
+  }
+
+  function cancelEdit() {
+    editingKey = '';
+    renderParticipants();
+  }
+
+  async function saveParticipant(key) {
+    const target = allParticipants.find(p => getItemKey(p) === key);
+    if (!target) return;
+
+    const address = document.getElementById('editAddr').value.trim();
+    const type = document.getElementById('editType').value;
+    const candySpot = document.getElementById('editSpot').value.trim();
+    const group = document.getElementById('editGroup').value.trim();
+    const candy = document.getElementById('editCandy').value.trim();
+
+    if (!address) {
+      alert('番地を入力してください。');
+      return;
+    }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.innerText = '保存中...';
+
+    try {
+      const data = await postGas({
+        action: 'adminUpdateParticipant',
+        passwordHash: cachedHash,
+        token: target.token,
+        rowNumber: target.rowNumber,
+        address: address,
+        type: type,
+        candySpot: candySpot,
+        group: group,
+        candy: candy
+      });
+
+      if (!data || !data.success) {
+        alert((data && data.message) || '保存に失敗しました。');
+        btn.disabled = false;
+        btn.innerText = '保存する';
+        return;
+      }
+
+      editingKey = '';
+      allParticipants = Array.isArray(data.participants) ? data.participants : [];
+      renderParticipants();
+      showToast(data.message);
+    } catch (e) {
+      alert(e.message);
+      btn.disabled = false;
+      btn.innerText = '保存する';
+    }
+  }
+
+  function showToast(text) {
+    const box = document.getElementById('toastBox');
+    box.innerText = '✅ ' + text;
+    box.style.display = 'block';
+    setTimeout(() => { box.style.display = 'none'; }, 4500);
+  }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+</script>
+</body>
+</html>
