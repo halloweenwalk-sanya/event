@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="icon.png">
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { background: #1a202c; color: #f7fafc; margin: 0; padding: 14px; line-height: 1.45; padding-bottom: 48px; }
+    body { background: #1a202c; color: #f7fafc; margin: 0; padding: 14px; line-height: 1.45; padding-bottom: 64px; }
     .container { max-width: 760px; margin: 0 auto; }
     .card { background: #2d3748; padding: 16px; border-radius: 12px; margin-bottom: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
@@ -16,6 +16,16 @@
 
     h1 { margin: 0 0 4px; color: #ff9800; font-size: 1.2rem; text-align: center; }
     .sub-title { text-align: center; font-size: 0.82rem; color: #cbd5e0; margin-bottom: 12px; }
+    h2.sec-title {
+      margin: 0 0 10px;
+      color: #fbd38d;
+      font-size: 1rem;
+      border-bottom: 1px solid #4a5568;
+      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
     .list-header {
       display: flex;
@@ -97,7 +107,7 @@
     /* スプレッドシート形式グリッドテーブル */
     .sheet-wrap {
       width: 100%;
-      max-height: 68vh;
+      max-height: 62vh;
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       border: 1px solid #4a5568;
@@ -118,20 +128,33 @@
       color: #fbd38d;
       font-weight: bold;
       text-align: left;
-      padding: 9px 10px;
+      padding: 9px 8px;
       border-bottom: 1px solid #4a5568;
       border-right: 1px solid #374151;
       position: sticky;
       top: 0;
       z-index: 3;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    table.sheet-table thead th:hover {
+      background: #1e293b;
     }
 
     table.sheet-table thead th:last-child {
       border-right: none;
     }
 
+    .sort-ind {
+      display: inline-block;
+      margin-left: 3px;
+      font-size: 0.7rem;
+      color: #ff9800;
+    }
+
     table.sheet-table tbody td {
-      padding: 8px 10px;
+      padding: 8px 8px;
       color: #f7fafc;
       border-bottom: 1px solid #374151;
       border-right: 1px solid #374151;
@@ -151,16 +174,39 @@
       background: #232d3d;
     }
 
-    /* 1列目（番地）を左端固定 */
+    /* 1列目（行番号）を左端固定 */
+    table.sheet-table th.col-no,
+    table.sheet-table td.col-no {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      text-align: center;
+      color: #9ca3af;
+      font-weight: bold;
+      border-right: 1px solid #374151;
+      width: 42px;
+      min-width: 42px;
+      max-width: 42px;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+
+    table.sheet-table thead th.col-no {
+      background: #111827;
+      color: #fbd38d;
+      z-index: 4;
+    }
+
+    /* 2列目（番地）も左側に固定 */
     table.sheet-table th.col-addr,
     table.sheet-table td.col-addr {
       position: sticky;
-      left: 0;
+      left: 42px;
       z-index: 2;
       font-weight: bold;
       color: #fbd38d;
       border-right: 1px solid #4a5568;
-      min-width: 78px;
+      min-width: 74px;
     }
 
     table.sheet-table thead th.col-addr {
@@ -170,7 +216,7 @@
 
     /* 編集モード時のセル内入力スタイル */
     table.sheet-table.editing-active tbody td {
-      padding: 5px 6px;
+      padding: 5px 5px;
       background: #252f40;
     }
 
@@ -180,12 +226,12 @@
 
     .cell-input, .cell-select {
       width: 100%;
-      padding: 6px 8px;
+      padding: 6px 6px;
       border-radius: 5px;
       border: 1px solid #64748b;
       background: #111827;
       color: #fff;
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       margin: 0;
     }
 
@@ -195,17 +241,93 @@
       background: #1a202c;
     }
 
-    .w-addr { min-width: 82px; }
-    .w-type { min-width: 155px; }
-    .w-spot { min-width: 112px; }
-    .w-group { min-width: 112px; }
-    .w-candy { min-width: 82px; }
+    /* 入力済みでも▼を押すと全候補が出るカスタムコンボボックス */
+    .combo-wrap {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      background: #111827;
+      border: 1px solid #64748b;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .combo-wrap:focus-within {
+      border-color: #ff9800;
+    }
+    .combo-wrap input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      background: transparent;
+      color: #fff;
+      padding: 6px 6px;
+      font-size: 0.82rem;
+      margin: 0;
+    }
+    .combo-wrap input:focus {
+      outline: none;
+    }
+    .combo-arrow {
+      background: #1e293b;
+      border: none;
+      border-left: 1px solid #475569;
+      color: #fbd38d;
+      padding: 0 7px;
+      font-size: 0.68rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .combo-arrow:active {
+      background: #ff7a00;
+      color: #fff;
+    }
+
+    /* 画面上に浮かぶ候補リストメニュー */
+    .combo-popup {
+      position: fixed;
+      z-index: 9999;
+      background: #1e293b;
+      border: 1.5px solid #ff9800;
+      border-radius: 8px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.55);
+      min-width: 110px;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+    }
+    .combo-popup.show {
+      display: block;
+    }
+    .combo-option {
+      padding: 9px 12px;
+      font-size: 0.86rem;
+      color: #f7fafc;
+      border-bottom: 1px solid #334155;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .combo-option:last-child {
+      border-bottom: none;
+    }
+    .combo-option:hover, .combo-option:active {
+      background: #ff7a00;
+      color: #fff;
+    }
+
+    .w-addr { min-width: 74px; }
+    .w-type { width: 102px; min-width: 102px; max-width: 112px; }
+    .w-spot { min-width: 96px; }
+    .w-group { min-width: 96px; }
+    .w-candy { min-width: 84px; }
 
     .type-badge {
       display: inline-block;
-      padding: 2px 7px;
+      padding: 2px 6px;
       border-radius: 4px;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       font-weight: bold;
     }
     .type-both { background: #7c2d12; color: #fed7aa; }
@@ -215,11 +337,75 @@
 
     .val-muted { color: #9ca3af; }
 
+    /* 所属グループ毎の総準備お菓子数・必要数サマリー */
+    .req-candy-banner {
+      background: #1f2937;
+      border: 1.5px solid #ff9800;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .req-candy-label {
+      font-size: 0.82rem;
+      color: #e2e8f0;
+      font-weight: bold;
+    }
+    .req-candy-sub {
+      font-size: 0.73rem;
+      color: #a0aec0;
+      display: block;
+      font-weight: normal;
+    }
+    .req-candy-val {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #ff9800;
+      white-space: nowrap;
+    }
+
+    .summary-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid #4a5568;
+      border-radius: 8px;
+      background: #1f2937;
+    }
+    table.summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      white-space: nowrap;
+    }
+    table.summary-table th {
+      background: #111827;
+      color: #fbd38d;
+      font-weight: bold;
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid #4a5568;
+    }
+    table.summary-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #374151;
+      color: #f7fafc;
+    }
+    table.summary-table tr:last-child td {
+      border-bottom: none;
+    }
+    .diff-ok { color: #68d391; font-weight: bold; }
+    .diff-short { color: #fc8181; font-weight: bold; }
+
     .toast { background: #22543d; border: 1px solid #48bb78; color: #c6f6d5; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px; display: none; }
     .msg-error { color: #fc8181; font-size: 0.85rem; margin-top: 8px; }
   </style>
 </head>
 <body>
+
+<div id="comboPopup" class="combo-popup"></div>
 
 <div class="container">
   <div class="header-bar">
@@ -241,11 +427,12 @@
 
   <!-- メイン一覧＆編集エリア -->
   <div id="mainSection" style="display:none;">
+    <!-- 1. 参加者スプレッドシート編集カード -->
     <div class="card">
       <h1 id="pageEventName">参加者ステータス編集</h1>
       <div class="sub-title">受付期間にかかわらず下記5項目をいつでも編集できます</div>
 
-      <input type="text" id="searchInput" class="search-input" placeholder="🔍 番地・グループで検索（例: 6004 / Aグループ）" oninput="onSearchOrFilterChange()">
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 番地・グループで検索（例: 6004 / A）" oninput="onSearchOrFilterChange()">
 
       <div class="filter-row">
         <button type="button" class="filter-chip active" id="fltAll" onclick="setFilter('all')">すべて</button>
@@ -265,40 +452,50 @@
         </div>
       </div>
 
-      <div class="note" id="sheetHintNote">※表は左右にスクロールできます。右上の「編集」で全セルを直接編集できます。</div>
-
-      <datalist id="groupPresetList">
-        <option value="未定">
-        <option value="対象外">
-        <option value="Aグループ">
-        <option value="Bグループ">
-        <option value="Cグループ">
-        <option value="Dグループ">
-        <option value="Eグループ">
-      </datalist>
-
-      <datalist id="candyPresetList">
-        <option value="未定">
-        <option value="0">
-        <option value="10">
-        <option value="15">
-        <option value="20">
-        <option value="25">
-        <option value="30">
-      </datalist>
+      <div class="note" id="sheetHintNote">※見出しをタップすると並び替えできます。右上の「編集」で全セルを直接編集できます。</div>
 
       <div class="sheet-wrap">
         <table class="sheet-table" id="participantsTable">
           <thead>
             <tr>
-              <th class="col-addr">番地</th>
-              <th>参加形態</th>
-              <th>お菓子スポット</th>
-              <th>所属グループ</th>
-              <th>準備お菓子数</th>
+              <th class="col-no" onclick="toggleSort('no')">No.<span class="sort-ind" id="sort_no">▲</span></th>
+              <th class="col-addr" onclick="toggleSort('address')">番地<span class="sort-ind" id="sort_address"></span></th>
+              <th onclick="toggleSort('type')">参加形態<span class="sort-ind" id="sort_type"></span></th>
+              <th onclick="toggleSort('candySpot')">お菓子スポット<span class="sort-ind" id="sort_candySpot"></span></th>
+              <th onclick="toggleSort('group')">所属グループ<span class="sort-ind" id="sort_group"></span></th>
+              <th onclick="toggleSort('candy')">準備お菓子数<span class="sort-ind" id="sort_candy"></span></th>
             </tr>
           </thead>
           <tbody id="participantsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. 所属グループ毎の総準備お菓子数 集計表 -->
+    <div class="card">
+      <h2 class="sec-title">
+        <span>🍬 所属グループ毎の総準備お菓子数</span>
+      </h2>
+
+      <div class="req-candy-banner">
+        <div class="req-candy-label">
+          1スポットの必要お菓子数
+          <span class="req-candy-sub">※子どもの総数（<span id="reqChildrenCount">0</span>人）＝1スポットで準備すべき総お菓子数</span>
+        </div>
+        <div class="req-candy-val"><span id="reqCandyPerSpot">0</span> 個</div>
+      </div>
+
+      <div class="summary-table-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>所属グループ</th>
+              <th>世帯数</th>
+              <th>総準備お菓子数</th>
+              <th>必要数との差</th>
+            </tr>
+          </thead>
+          <tbody id="groupSummaryTbody"></tbody>
         </table>
       </div>
     </div>
@@ -309,13 +506,30 @@
   const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw_f8vuCGQwmsg8N9CcItGBMe1YVWSkhCP5ubdoK8CM4xGxx8yk3RAgIJDBGNu4vI4C/exec';
   const ADMIN_HASH_SALT = 'hw_sanya_admin_salt_2027';
 
+  const GROUP_OPTIONS = ['未定', '対象外', 'A', 'B', 'C', 'D', 'E'];
+  const CANDY_OPTIONS = ['未定', '0', '10', '15', '20', '25', '30'];
+
   let cachedHash = '';
   let allParticipants = [];
+  let summaryData = { households: 0, children: 0, totalSpots: 0 };
   let currentFilter = 'all';
   let isEditMode = false;
   let draftEdits = {};
 
+  // ソート状態（初期はシート順 No. 昇順）
+  let sortState = { key: 'no', dir: 'asc' };
+
+  // カスタムコンボメニューの対象input参照
+  let activeComboInput = null;
+
   window.onload = async function() {
+    document.addEventListener('click', function(e) {
+      const popup = document.getElementById('comboPopup');
+      if (popup.classList.contains('show') && !popup.contains(e.target) && !e.target.classList.contains('combo-arrow')) {
+        closeComboPopup();
+      }
+    });
+
     const saved =
       sessionStorage.getItem('hw_admin_hash') ||
       sessionStorage.getItem('hw_sanya_admin_hash_v1') ||
@@ -393,11 +607,100 @@
       document.getElementById('pageEventName').innerText = data.eventName + ' ステータス編集';
     }
     allParticipants = Array.isArray(data.participants) ? data.participants : [];
-    renderParticipants();
+    if (data.summary) summaryData = data.summary;
+    renderAll();
     return true;
   }
 
+  function renderAll() {
+    renderParticipants();
+    renderGroupSummary();
+  }
+
+  // ==========================================
+  // ソート機能（見出しタップで昇順・降順切替）
+  // ==========================================
+  function toggleSort(key) {
+    closeComboPopup();
+    if (isEditMode) {
+      syncDraftInputsToMemory();
+    }
+    if (sortState.key === key) {
+      sortState.dir = (sortState.dir === 'asc') ? 'desc' : 'asc';
+    } else {
+      sortState.key = key;
+      sortState.dir = 'asc';
+    }
+    updateSortIndicators();
+    renderParticipants();
+  }
+
+  function updateSortIndicators() {
+    const keys = ['no', 'address', 'type', 'candySpot', 'group', 'candy'];
+    keys.forEach(k => {
+      const el = document.getElementById('sort_' + k);
+      if (!el) return;
+      if (sortState.key === k) {
+        el.textContent = sortState.dir === 'asc' ? '▲' : '▼';
+      } else {
+        el.textContent = '';
+      }
+    });
+  }
+
+  function compareAddressNatural(a, b) {
+    const pa = String(a || '').split('-').map(n => parseInt(n, 10));
+    const pb = String(b || '').split('-').map(n => parseInt(n, 10));
+    const mainA = isNaN(pa[0]) ? 0 : pa[0];
+    const mainB = isNaN(pb[0]) ? 0 : pb[0];
+    if (mainA !== mainB) return mainA - mainB;
+    const subA = isNaN(pa[1]) ? -1 : pa[1];
+    const subB = isNaN(pb[1]) ? -1 : pb[1];
+    return subA - subB;
+  }
+
+  function compareCandyValue(a, b) {
+    const na = parseFloat(String(a || '').trim());
+    const nb = parseFloat(String(b || '').trim());
+    const validA = !isNaN(na);
+    const validB = !isNaN(nb);
+    if (validA && validB) return na - nb;
+    if (validA && !validB) return -1;
+    if (!validA && validB) return 1;
+    return String(a || '').localeCompare(String(b || ''), 'ja');
+  }
+
+  function sortItems(items) {
+    const dirMul = sortState.dir === 'asc' ? 1 : -1;
+    const key = sortState.key;
+
+    return items.slice().sort((itemA, itemB) => {
+      const a = itemA.cur;
+      const b = itemB.cur;
+      let cmp = 0;
+
+      if (key === 'no') {
+        cmp = (itemA.orig.rowNumber || 0) - (itemB.orig.rowNumber || 0);
+      } else if (key === 'address') {
+        cmp = compareAddressNatural(a.address, b.address);
+      } else if (key === 'candy') {
+        cmp = compareCandyValue(a.candy, b.candy);
+      } else {
+        cmp = String(a[key] || '').localeCompare(String(b[key] || ''), 'ja');
+      }
+
+      if (cmp === 0) {
+        cmp = (itemA.orig.rowNumber || 0) - (itemB.orig.rowNumber || 0);
+      }
+      return cmp * dirMul;
+    });
+  }
+
+  // ==========================================
+  // フィルター＆検索
+  // ==========================================
   function onSearchOrFilterChange() {
+    closeComboPopup();
     if (isEditMode) {
       syncDraftInputsToMemory();
     }
@@ -405,6 +708,7 @@
   }
 
   function setFilter(mode) {
+    closeComboPopup();
     if (isEditMode) {
       syncDraftInputsToMemory();
     }
@@ -420,6 +724,59 @@
     return p.token || ('row_' + p.rowNumber);
   }
 
+  // ==========================================
+  // カスタムコンボボックス（入力済みでも▼押下で全候補を表示）
+  // ==========================================
+  function openComboPopup(arrowBtn, listType) {
+    const popup = document.getElementById('comboPopup');
+    const wrap = arrowBtn.closest('.combo-wrap');
+    const input = wrap ? wrap.querySelector('input') : null;
+    if (!input) return;
+
+    if (popup.classList.contains('show') && activeComboInput === input) {
+      closeComboPopup();
+      return;
+    }
+
+    activeComboInput = input;
+    const options = (listType === 'candy') ? CANDY_OPTIONS : GROUP_OPTIONS;
+    popup.innerHTML = options.map(opt =>
+      `<div class="combo-option" onclick="selectComboOption('${escapeHtml(opt)}')">${escapeHtml(opt)}</div>`
+    ).join('');
+
+    const rect = wrap.getBoundingClientRect();
+    popup.style.minWidth = Math.max(rect.width, 96) + 'px';
+    popup.style.left = Math.min(rect.left, window.innerWidth - 130) + 'px';
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < 180 && rect.top > 180) {
+      popup.style.top = 'auto';
+      popup.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    } else {
+      popup.style.bottom = 'auto';
+      popup.style.top = (rect.bottom + 4) + 'px';
+    }
+
+    popup.classList.add('show');
+  }
+
+  function selectComboOption(val) {
+    if (activeComboInput) {
+      activeComboInput.value = val;
+      activeComboInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    closeComboPopup();
+  }
+
+  function closeComboPopup() {
+    const popup = document.getElementById('comboPopup');
+    popup.classList.remove('show');
+    activeComboInput = null;
+  }
+
+  // ==========================================
+  // 一括編集・保存処理
+  // ==========================================
   function syncDraftInputsToMemory() {
     const rows = document.querySelectorAll('#participantsTbody tr[data-key]');
     rows.forEach(tr => {
@@ -462,6 +819,7 @@
       candy !== (orig.candy || '未定');
 
     tr.classList.toggle('row-modified', modified);
+    renderGroupSummary();
   }
 
   function updateEditButtonUI() {
@@ -475,17 +833,18 @@
       btn.classList.add('saving-mode');
       cancelBtn.style.display = 'inline-block';
       table.classList.add('editing-active');
-      hint.textContent = '✏️ 編集中：各セルを書き換えて右上の「保存する」を押してください。';
+      hint.textContent = '✏️ 編集中：▼ボタンで候補リストを開けます。完了したら「保存する」を押してください。';
     } else {
       btn.textContent = '編集';
       btn.classList.remove('saving-mode');
       cancelBtn.style.display = 'none';
       table.classList.remove('editing-active');
-      hint.textContent = '※表は左右にスクロールできます。右上の「編集」で全セルを直接編集できます。';
+      hint.textContent = '※見出しをタップすると並び替えできます。右上の「編集」で全セルを直接編集できます。';
     }
   }
 
   async function handleSingleEditButton() {
+    closeComboPopup();
     if (!isEditMode) {
       if (allParticipants.length === 0) return;
       isEditMode = true;
@@ -500,7 +859,7 @@
         };
       });
       updateEditButtonUI();
-      renderParticipants();
+      renderAll();
       return;
     }
 
@@ -514,7 +873,7 @@
       if (!d) continue;
 
       if (!d.address) {
-        alert(`元の番地「${orig.address}」の番地が空欄になっています。入力してください。`);
+        alert(`No.${orig.rowNumber - 1}（元の番地：${orig.address}）の番地が空欄になっています。入力してください。`);
         return;
       }
 
@@ -534,7 +893,7 @@
       isEditMode = false;
       draftEdits = {};
       updateEditButtonUI();
-      renderParticipants();
+      renderAll();
       showToast('変更はありませんでした。');
       return;
     }
@@ -547,6 +906,7 @@
 
     try {
       let latestParticipants = allParticipants;
+      let latestSummary = summaryData;
       for (let i = 0; i < changedList.length; i++) {
         const item = changedList[i];
         const data = await postGas({
@@ -571,15 +931,19 @@
         if (Array.isArray(data.participants)) {
           latestParticipants = data.participants;
         }
+        if (data.summary) {
+          latestSummary = data.summary;
+        }
       }
 
       allParticipants = latestParticipants;
+      summaryData = latestSummary;
       isEditMode = false;
       draftEdits = {};
       btn.disabled = false;
       cancelBtn.disabled = false;
       updateEditButtonUI();
-      renderParticipants();
+      renderAll();
       showToast(`${changedList.length}件のステータスを更新しました。`);
     } catch (e) {
       alert(e.message);
@@ -590,22 +954,26 @@
   }
 
   function cancelBulkEdit() {
+    closeComboPopup();
     isEditMode = false;
     draftEdits = {};
     updateEditButtonUI();
-    renderParticipants();
+    renderAll();
   }
 
+  // ==========================================
+  // 参加者スプレッドシート描画
+  // ==========================================
   function formatTypeBadge(typeStr) {
     const t = String(typeStr || '');
     if (t.includes('欠席')) {
       return '<span class="type-badge type-absent">欠席</span>';
     }
     if (t.includes('両方')) {
-      return '<span class="type-badge type-both">両方（散策＋スポット協力）</span>';
+      return '<span class="type-badge type-both">両方</span>';
     }
     if (t.includes('スポット')) {
-      return '<span class="type-badge type-spot">スポットのみ</span>';
+      return '<span class="type-badge type-spot">スポット</span>';
     }
     if (t.includes('散策')) {
       return '<span class="type-badge type-walk">散策のみ</span>';
@@ -625,10 +993,15 @@
     const tbody = document.getElementById('participantsTbody');
     const kw = String(document.getElementById('searchInput').value || '').trim().toLowerCase();
 
-    const list = allParticipants.filter(p => {
+    const mapped = allParticipants.map((p, idx) => {
       const key = getItemKey(p);
       const cur = (isEditMode && draftEdits[key]) ? draftEdits[key] : p;
+      const rowNo = (p.rowNumber && p.rowNumber >= 2) ? (p.rowNumber - 1) : (idx + 1);
+      return { orig: p, cur: cur, key: key, rowNo: rowNo };
+    });
 
+    const filtered = mapped.filter(item => {
+      const cur = item.cur;
       if (currentFilter === 'undecided') {
         if (cur.candySpot !== '未定' && cur.group !== '未定' && cur.candy !== '未定') return false;
       } else if (currentFilter === 'spot') {
@@ -638,29 +1011,31 @@
       }
 
       if (!kw) return true;
-      const text = `${cur.address} ${cur.type} ${cur.candySpot} ${cur.group} ${cur.candy}`.toLowerCase();
+      const text = `${item.rowNo} ${cur.address} ${cur.type} ${cur.candySpot} ${cur.group} ${cur.candy}`.toLowerCase();
       return text.includes(kw);
     });
 
-    document.getElementById('countLabel').innerText = `${list.length}/${allParticipants.length}件`;
+    const sorted = sortItems(filtered);
+    document.getElementById('countLabel').innerText = `${sorted.length}/${allParticipants.length}件`;
 
-    if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#a0aec0;">該当するデータがありません。</td></tr>`;
+    if (sorted.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#a0aec0;">該当するデータがありません。</td></tr>`;
       return;
     }
 
     const typeChoices = [
-      '両方（散策＋スポット協力）',
-      '散策のみ',
-      'スポットのみ',
-      '欠席'
+      { value: '両方（散策＋スポット協力）', label: '両方' },
+      { value: '散策のみ', label: '散策のみ' },
+      { value: 'スポットのみ', label: 'スポットのみ' },
+      { value: '欠席', label: '欠席' }
     ];
 
-    tbody.innerHTML = list.map(p => {
-      const key = getItemKey(p);
+    tbody.innerHTML = sorted.map(item => {
+      const p = item.orig;
+      const cur = item.cur;
+      const key = item.key;
 
       if (isEditMode) {
-        const cur = draftEdits[key] || p;
         const isModified =
           cur.address !== p.address ||
           cur.type !== p.type ||
@@ -668,12 +1043,13 @@
           (cur.group || '未定') !== (p.group || '未定') ||
           (cur.candy || '未定') !== (p.candy || '未定');
 
-        const typeOpts = typeChoices.map(t =>
-          `<option value="${escapeHtml(t)}" ${cur.type === t ? 'selected' : ''}>${escapeHtml(t)}</option>`
+        const typeOpts = typeChoices.map(tc =>
+          `<option value="${escapeHtml(tc.value)}" ${cur.type === tc.value ? 'selected' : ''}>${escapeHtml(tc.label)}</option>`
         ).join('');
 
         return `
           <tr data-key="${escapeHtml(key)}" class="${isModified ? 'row-modified' : ''}">
+            <td class="col-no">${item.rowNo}</td>
             <td class="col-addr">
               <input type="text" class="cell-input w-addr inp-addr" value="${escapeHtml(cur.address)}" oninput="onCellInputChanged('${escapeHtml(key)}')">
             </td>
@@ -681,13 +1057,22 @@
               <select class="cell-select w-type inp-type" onchange="onCellInputChanged('${escapeHtml(key)}')">${typeOpts}</select>
             </td>
             <td>
-              <input type="text" class="cell-input w-spot inp-spot" list="groupPresetList" value="${escapeHtml(cur.candySpot)}" oninput="onCellInputChanged('${escapeHtml(key)}')">
+              <div class="combo-wrap w-spot">
+                <input type="text" class="inp-spot" value="${escapeHtml(cur.candySpot)}" oninput="onCellInputChanged('${escapeHtml(key)}')">
+                <button type="button" class="combo-arrow" onclick="openComboPopup(this, 'group')">▼</button>
+              </div>
             </td>
             <td>
-              <input type="text" class="cell-input w-group inp-group" list="groupPresetList" value="${escapeHtml(cur.group)}" oninput="onCellInputChanged('${escapeHtml(key)}')">
+              <div class="combo-wrap w-group">
+                <input type="text" class="inp-group" value="${escapeHtml(cur.group)}" oninput="onCellInputChanged('${escapeHtml(key)}')">
+                <button type="button" class="combo-arrow" onclick="openComboPopup(this, 'group')">▼</button>
+              </div>
             </td>
             <td>
-              <input type="text" class="cell-input w-candy inp-candy" list="candyPresetList" value="${escapeHtml(cur.candy)}" oninput="onCellInputChanged('${escapeHtml(key)}')">
+              <div class="combo-wrap w-candy">
+                <input type="text" class="inp-candy" value="${escapeHtml(cur.candy)}" oninput="onCellInputChanged('${escapeHtml(key)}')">
+                <button type="button" class="combo-arrow" onclick="openComboPopup(this, 'candy')">▼</button>
+              </div>
             </td>
           </tr>
         `;
@@ -695,11 +1080,73 @@
 
       return `
         <tr>
-          <td class="col-addr">${escapeHtml(p.address)}</td>
-          <td>${formatTypeBadge(p.type)}</td>
-          <td>${formatCellVal(p.candySpot)}</td>
-          <td>${formatCellVal(p.group)}</td>
-          <td>${formatCellVal(p.candy)}</td>
+          <td class="col-no">${item.rowNo}</td>
+          <td class="col-addr">${escapeHtml(cur.address)}</td>
+          <td>${formatTypeBadge(cur.type)}</td>
+          <td>${formatCellVal(cur.candySpot)}</td>
+          <td>${formatCellVal(cur.group)}</td>
+          <td>${formatCellVal(cur.candy)}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ==========================================
+  // 所属グループ毎の総準備お菓子数 集計表描画
+  // ==========================================
+  function renderGroupSummary() {
+    const requiredPerSpot = Number(summaryData.children) || 0;
+    document.getElementById('reqChildrenCount').innerText = requiredPerSpot;
+    document.getElementById('reqCandyPerSpot').innerText = requiredPerSpot;
+
+    const tbody = document.getElementById('groupSummaryTbody');
+    const groupMap = {};
+
+    allParticipants.forEach(p => {
+      const key = getItemKey(p);
+      const cur = (isEditMode && draftEdits[key]) ? draftEdits[key] : p;
+      const typeStr = String(cur.type || '');
+      if (typeStr.includes('欠席')) return;
+
+      const grp = String(cur.group || '未定').trim() || '未定';
+      if (grp === '対象外') return;
+
+      if (!groupMap[grp]) {
+        groupMap[grp] = { group: grp, households: 0, totalCandy: 0, undecidedCount: 0 };
+      }
+      groupMap[grp].households += 1;
+
+      const numCandy = parseInt(String(cur.candy || '').trim(), 10);
+      if (!isNaN(numCandy) && numCandy >= 0) {
+        groupMap[grp].totalCandy += numCandy;
+      } else {
+        groupMap[grp].undecidedCount += 1;
+      }
+    });
+
+    const groups = Object.values(groupMap).sort((a, b) => {
+      if (a.group === '未定') return 1;
+      if (b.group === '未定') return -1;
+      return a.group.localeCompare(b.group, 'ja');
+    });
+
+    if (groups.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:14px; color:#a0aec0;">集計対象の所属グループがありません。</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = groups.map(g => {
+      const diff = g.totalCandy - requiredPerSpot;
+      const diffText = diff >= 0 ? `+${diff} 個` : `${diff} 個`;
+      const diffClass = diff >= 0 ? 'diff-ok' : 'diff-short';
+      const undecidedNote = g.undecidedCount > 0 ? ` <span class="val-muted">(未定${g.undecidedCount}件)</span>` : '';
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(g.group)}</strong></td>
+          <td>${g.households} 世帯</td>
+          <td><strong>${g.totalCandy} 個</strong>${undecidedNote}</td>
+          <td class="${diffClass}">${diffText}</td>
         </tr>
       `;
     }).join('');
