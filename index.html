@@ -39,6 +39,13 @@
     .welcome-box h3 { margin: 0 0 8px; color: #9ae6b4; font-size: 1rem; }
     .url-box { background: #1a202c; padding: 10px; border-radius: 6px; font-size: 0.8rem; word-break: break-all; color: #fbd38d; margin: 8px 0; }
 
+    /* 最上部：運営からのお知らせ（掲示板未公開でも常時表示・3件表示スクロール対応） */
+    .top-notice-box { background: #2b2118; border: 1.5px solid #ff9800; border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+    .top-notice-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: bold; color: #ff9800; font-size: 0.92rem; }
+    .top-notice-scroll { max-height: 255px; overflow-y: auto; padding-right: 4px; }
+    .top-notice-item { background: #1f2937; border: 1px solid #4a5568; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+    .top-notice-item:last-child { margin-bottom: 0; }
+
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.85rem; background: #1f2937; padding: 10px 12px; border-radius: 8px; }
     .btn-small { background: none; border: 1px solid #718096; color: #cbd5e0; border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; }
     .menu-item { background: #374151; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
@@ -175,6 +182,15 @@
       <div class="logo-wrap"><img src="icon.png" class="logo-img" style="width:56px;height:56px;" onerror="this.style.display='none'"></div>
       <h1 id="menuEventName" style="margin-bottom:16px;">マイページ</h1>
 
+      <!-- 最上部：運営からのお知らせ（掲示板未公開でも常時表示・3件表示スクロール対応） -->
+      <div id="topAnnouncementsSection" class="top-notice-box" style="display:none;">
+        <div class="top-notice-header">
+          <span>📢 運営からのお知らせ</span>
+          <span id="topAnnouncementsCount" style="font-size:0.76rem; color:#fbd38d;"></span>
+        </div>
+        <div id="topAnnouncementsList" class="top-notice-scroll"></div>
+      </div>
+
       <div class="menu-item">
         <div class="menu-title" onclick="toggleMenu(1)">１．全体の申込状況 <span>▼</span></div>
         <div id="menu1" class="menu-content" style="display:block;"></div>
@@ -186,27 +202,27 @@
       </div>
 
       <div class="menu-item">
-        <div class="menu-title" onclick="toggleMenu(3)">３．参加者LINEグループ（任意） <span>▼</span></div>
+        <div class="menu-title" onclick="toggleMenu(3)">３．グループ・準備お菓子数 <span>▼</span></div>
         <div id="menu3" class="menu-content"></div>
       </div>
 
       <div class="menu-item">
-        <div class="menu-title" onclick="toggleMenu(4)">４．協力金について <span>▼</span></div>
+        <div class="menu-title" onclick="toggleMenu(4)">４．マップの確認 <span>▼</span></div>
         <div id="menu4" class="menu-content"></div>
       </div>
 
       <div class="menu-item">
-        <div class="menu-title" onclick="toggleMenu(5)">５．グループ・準備お菓子数 <span>▼</span></div>
+        <div class="menu-title" onclick="toggleMenu(5, true)">５．当日のお知らせ・連絡掲示板 <span>▼</span></div>
         <div id="menu5" class="menu-content"></div>
       </div>
 
       <div class="menu-item">
-        <div class="menu-title" onclick="toggleMenu(6)">６．マップの確認 <span>▼</span></div>
+        <div class="menu-title" onclick="toggleMenu(6)">６．協力金について <span>▼</span></div>
         <div id="menu6" class="menu-content"></div>
       </div>
 
       <div class="menu-item">
-        <div class="menu-title" onclick="toggleMenu(7, true)">７．当日のお知らせ・連絡掲示板 <span>▼</span></div>
+        <div class="menu-title" onclick="toggleMenu(7)">７．参加者LINEグループ（任意） <span>▼</span></div>
         <div id="menu7" class="menu-content"></div>
       </div>
     </div>
@@ -398,6 +414,32 @@
     return false;
   }
 
+  function renderTopAnnouncements(announcements) {
+    const sec = document.getElementById('topAnnouncementsSection');
+    const listEl = document.getElementById('topAnnouncementsList');
+    const countEl = document.getElementById('topAnnouncementsCount');
+
+    // 掲示板公開フラグに関わらず、運営からのお知らせが1件以上あれば最上部に表示
+    if (!Array.isArray(announcements) || announcements.length === 0) {
+      sec.style.display = 'none';
+      listEl.innerHTML = '';
+      return;
+    }
+
+    sec.style.display = 'block';
+    countEl.innerText = announcements.length > 3
+      ? `全${announcements.length}件（スクロール可）`
+      : `全${announcements.length}件`;
+
+    listEl.innerHTML = announcements.map(a => `
+      <div class="top-notice-item">
+        <div class="post-time">${escapeHtml(a.createdAt)}</div>
+        <div class="post-title">${escapeHtml(a.title)}</div>
+        <div class="post-body">${escapeHtml(a.body)}</div>
+      </div>
+    `).join('');
+  }
+
   function buildMapSubCardHtml(title, url, btnLabel, isPrimaryBtn) {
     const cleanUrl = String(url || '').trim();
     if (!cleanUrl) return '';
@@ -436,6 +478,9 @@
       document.getElementById('welcomeBox').style.display = 'none';
     }
 
+    // 最上部：運営からのお知らせ（3件表示・スクロール対応）
+    renderTopAnnouncements(data.announcements || []);
+
     // 1. 全体の申込状況
     const absentNote = (data.summary.absent > 0) ? ` / 欠席 ${data.summary.absent}` : '';
     document.getElementById('menu1').innerHTML = `
@@ -450,23 +495,7 @@
     // 2. あなたの申込内容
     renderMenu2View();
 
-    // 3. 参加者LINEグループ
-    document.getElementById('menu3').innerHTML = `
-      <div style="margin-bottom:10px; font-size:0.85rem;">当日の雨天連絡や写真共有用の任意グループです（参加自由）。</div>
-      <a href="${escapeHtml(data.config.lineUrl)}" target="_blank" class="btn btn-line">LINEグループを開く</a>
-    `;
-
-    // 4. 協力金について
-    let paypayBtnHtml = '';
-    if (data.config.paypayUrl && data.config.paypayUrl.startsWith('http')) {
-      paypayBtnHtml = `<a href="${escapeHtml(data.config.paypayUrl)}" target="_blank" class="btn btn-paypay">PayPayで協力金を送金する</a>`;
-    }
-    document.getElementById('menu4').innerHTML = `
-      <div>${escapeHtml(data.config.paypayInfo)}</div>
-      ${paypayBtnHtml}
-    `;
-
-    // 5. グループ・準備お菓子数
+    // 3. グループ・準備お菓子数
     if (data.config.isGroupPublished) {
       let groupCardsHtml = '';
       if (String(data.user.type).includes('欠席')) {
@@ -495,28 +524,44 @@
           </div>
         `;
       }
-      document.getElementById('menu5').innerHTML = groupCardsHtml;
+      document.getElementById('menu3').innerHTML = groupCardsHtml;
     } else {
-      document.getElementById('menu5').innerHTML = `<div style="color:#fbd38d;">※参加締切後にグループと準備するお菓子の数を計算して公開します。</div>`;
+      document.getElementById('menu3').innerHTML = `<div style="color:#fbd38d;">※参加締切後にグループと準備するお菓子の数を計算して公開します。</div>`;
     }
 
-    // 6. マップの確認（散策経路の地図・お菓子スポットの地図の2種表示）
+    // 4. マップの確認（散策経路の地図・お菓子スポットの地図の2種表示）
     const routeUrl = String(data.config.mapUrl || '').trim();
     const spotUrl = String(data.config.spotMapUrl || '').trim();
     if (data.config.isMapPublished && (routeUrl || spotUrl)) {
       const routeCard = buildMapSubCardHtml('🚶 散策経路の地図', routeUrl, '散策経路の地図を開く', false);
       const spotCard = buildMapSubCardHtml('🍬 お菓子スポットの地図', spotUrl, 'お菓子スポットの地図を拡大して見る', true);
-      document.getElementById('menu6').innerHTML = routeCard + spotCard;
+      document.getElementById('menu4').innerHTML = routeCard + spotCard;
     } else {
-      document.getElementById('menu6').innerHTML = `<div style="color:#fbd38d;">※スポット確定後にマップを公開します。</div>`;
+      document.getElementById('menu4').innerHTML = `<div style="color:#fbd38d;">※スポット確定後にマップを公開します。</div>`;
     }
 
-    // 7. 当日のお知らせ・連絡掲示板
+    // 5. 当日のお知らせ・連絡掲示板
     if (!data.config.isBoardPublished) {
-      document.getElementById('menu7').innerHTML = `<div style="color:#fbd38d;">※イベント開催直前〜当日に公開します。</div>`;
+      document.getElementById('menu5').innerHTML = `<div style="color:#fbd38d;">※イベント開催直前〜当日に公開します。</div>`;
     } else if (!boardLoadedOnce) {
-      document.getElementById('menu7').innerHTML = `<div style="color:#cbd5e0;">読み込み中...</div>`;
+      document.getElementById('menu5').innerHTML = `<div style="color:#cbd5e0;">読み込み中...</div>`;
     }
+
+    // 6. 協力金について（LINEの上）
+    let paypayBtnHtml = '';
+    if (data.config.paypayUrl && data.config.paypayUrl.startsWith('http')) {
+      paypayBtnHtml = `<a href="${escapeHtml(data.config.paypayUrl)}" target="_blank" class="btn btn-paypay">PayPayで協力金を送金する</a>`;
+    }
+    document.getElementById('menu6').innerHTML = `
+      <div>${escapeHtml(data.config.paypayInfo)}</div>
+      ${paypayBtnHtml}
+    `;
+
+    // 7. 参加者LINEグループ（一番下）
+    document.getElementById('menu7').innerHTML = `
+      <div style="margin-bottom:10px; font-size:0.85rem;">当日の雨天連絡や写真共有用の任意グループです（参加自由）。</div>
+      <a href="${escapeHtml(data.config.lineUrl)}" target="_blank" class="btn btn-line">LINEグループを開く</a>
+    `;
 
     showSection('menuSection');
   }
@@ -657,11 +702,11 @@
   }
 
   // ==========================================
-  // 掲示板機能
+  // 掲示板機能（メニュー5）
   // ==========================================
   async function loadBoardData() {
     if (!currentConfigData || !currentConfigData.isBoardPublished) return;
-    const box = document.getElementById('menu7');
+    const box = document.getElementById('menu5');
     box.innerHTML = `<div style="color:#cbd5e0;">読み込み中...</div>`;
 
     try {
@@ -678,7 +723,10 @@
   }
 
   function renderBoardView(board) {
-    const box = document.getElementById('menu7');
+    const box = document.getElementById('menu5');
+
+    // 最上部のお知らせボックスも最新状態に同期
+    renderTopAnnouncements(board.announcements || []);
 
     let annHtml = '';
     if (board.announcements && board.announcements.length > 0) {
